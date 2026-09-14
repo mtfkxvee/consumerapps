@@ -1,17 +1,26 @@
 {
   "expo": {
-    "name": "consumerapps",
-    "slug": "consumerapps",
+    "name": "X-SHA",
+    "slug": "xsha-app",
+    "scheme": "xsha",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "backgroundColor": "#F8F7FA",
+    "splash": {
+      "image": "./assets/login-hero.jpg",
+      "resizeMode": "cover",
+      "backgroundColor": "#3D1F73"
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "id.xsha.app"
     },
     "android": {
+      "package": "id.xsha.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#3D1F73",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -20,6 +29,17 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/login-hero.jpg",
+          "resizeMode": "cover",
+          "backgroundColor": "#3D1F73"
+        }
+      ]
+    ]
   }
 }
