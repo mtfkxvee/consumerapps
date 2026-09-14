@@ -23,37 +23,22 @@ konten web app — cocok untuk demo/preview tanpa backend.
 
 ## Menghubungkan ke backend ERPNext (data asli)
 
-Aplikasi ini tidak memanggil ERPNext langsung (kredensial API harus tetap di server, tidak
-boleh ada di aplikasi mobile). Sebagai gantinya, ia memanggil endpoint REST `/api/mobile/*`
-yang perlu ditambahkan ke project `xsha-app` (yang sudah menyimpan `ERPNEXT_URL` dan API
-key/secret di server).
+Aplikasi ini tidak memanggil ERPNext langsung (kredensial API tetap di server, tidak pernah
+ada di aplikasi mobile). Sebagai gantinya, ia memanggil endpoint REST `/api/mobile/*` yang
+sudah live di production di `xsha-app` (repo `mtfkxvee/xshaweb`, lihat
+`src/routes/api/mobile/*.ts` dan `src/lib/erpnext/mobile-request.ts`).
 
-1. Salin `.env.example` ke `.env`, isi `EXPO_PUBLIC_API_URL` dengan domain xsha-app.
-2. Tambahkan endpoint berikut di `xsha-app` (membungkus fungsi yang sudah ada di
-   `src/lib/erpnext/*.ts`):
+1. Salin `.env.example` ke `.env`.
+2. Isi `EXPO_PUBLIC_API_URL=https://x-sha.id` (sudah default di `.env.example`).
+3. Jalankan `npm run start` — data produk, promo, login, loyalty, dan riwayat transaksi
+   sekarang berasal dari ERPNext produksi yang sama dengan website.
 
-   | Method | Path                        | Sumber logic                          |
-   | ------ | --------------------------- | -------------------------------------- |
-   | GET    | `/api/mobile/products`      | `products.ts` → `getProducts`          |
-   | GET    | `/api/mobile/products/:id`  | `products.ts` → `getProductById`       |
-   | GET    | `/api/mobile/item-groups`   | `products.ts` → `getItemGroupChildren` |
-   | GET    | `/api/mobile/promo-products`| `products.ts` → `getPromoProducts`     |
-   | GET    | `/api/mobile/promo-banners` | `products.ts` → `getPromoBanners`      |
-   | GET    | `/api/mobile/outlets`       | `outlets.ts` → `getOutlets`            |
-   | POST   | `/api/mobile/auth/login`    | `auth.ts` → `loginCustomer` (kembalikan token, bukan cookie) |
-   | POST   | `/api/mobile/auth/logout`   | `auth.ts` → `logoutCustomer`           |
-   | GET    | `/api/mobile/auth/me`       | `auth.ts` → `getCurrentCustomer`       |
-   | GET    | `/api/mobile/loyalty`       | `loyalty.ts` → `getMyLoyaltyStatus`    |
-   | GET    | `/api/mobile/orders`        | `orders.ts` → `getMyOrders`            |
-   | POST   | `/api/mobile/orders`        | `orders.ts` → `createOrder`            |
-
-   Karena mobile tidak punya cookie jar seperti browser, endpoint auth login sebaiknya
-   mengembalikan `sid` ERPNext sebagai token JSON (`{ ok: true, token }`), disimpan aplikasi
-   di `expo-secure-store`, lalu dikirim balik sebagai header `Authorization: Bearer <token>`
-   pada setiap request — endpoint lain tinggal membaca token itu dan memakainya sebagai
-   `Cookie: sid=...` saat memanggil ERPNext (persis seperti `erpRequest` yang sudah ada).
-
-3. Set `EXPO_PUBLIC_API_URL` dan jalankan ulang `npm run start`.
+Endpoint yang tersedia: `products`, `products/:id`, `item-groups`, `promo-products`,
+`promo-banners`, `outlets`, `auth/login`, `auth/logout`, `auth/me`, `loyalty`, `orders`
+(GET+POST), dan `image-proxy` (untuk file "private" ERPNext seperti banner promo). Auth
+pakai token (`Authorization: Bearer <sid>`) karena mobile tidak punya cookie jar seperti
+browser — login mengembalikan `sid` ERPNext sebagai token JSON, disimpan di
+`expo-secure-store`.
 
 ## Struktur
 
