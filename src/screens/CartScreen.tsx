@@ -1,4 +1,15 @@
-import { FlatList, Image, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  Linking,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -6,6 +17,8 @@ import { Screen } from "../components/Screen";
 import { colors, radius, spacing, typography } from "../theme/colors";
 import { formatIDR } from "../lib/format";
 import { useCart } from "../state/CartContext";
+import { useAuth } from "../state/AuthContext";
+import { createOrder } from "../lib/api/orders";
 import { WHATSAPP_NUMBER } from "../lib/mock-data";
 import type { RootStackParamList } from "../navigation/types";
 
@@ -13,10 +26,33 @@ type Props = NativeStackScreenProps<RootStackParamList, "Cart">;
 
 export function CartScreen({ navigation }: Props) {
   const { items, remove, setQty, toggleSelected, selectAll, allSelected, selectedTotal } = useCart();
+  const { isLoggedIn } = useAuth();
   const insets = useSafeAreaInsets();
+  const [checkingOut, setCheckingOut] = useState(false);
 
-  const checkoutViaWhatsapp = () => {
+  const checkout = async () => {
     const selectedItems = items.filter((i) => i.selected);
+    if (selectedItems.length === 0) return;
+
+    setCheckingOut(true);
+    // Mirrors the web cart: logged-in shoppers get the order recorded in
+    // ERPNext as a Quotation first (best-effort — WhatsApp still opens even
+    // if this fails, since staff can process the order from the chat too).
+    if (isLoggedIn) {
+      const result = await createOrder(
+        selectedItems.map((i) => ({ itemCode: i.id, itemName: i.name, qty: i.qty, rate: i.price })),
+      );
+      if (result.ok) {
+        Alert.alert("Pesanan tercatat", `Pesanan ${result.orderId} tersimpan di akun X-SHA Anda.`);
+      } else if (result.reason === "erpnext_error") {
+        Alert.alert(
+          "Belum tercatat di sistem",
+          "Pesanan belum tersimpan di akun, tapi tetap bisa dikirim via WhatsApp.",
+        );
+      }
+    }
+    setCheckingOut(false);
+
     const lines = selectedItems
       .map((i) => `- ${i.name} x${i.qty} (${formatIDR(i.price * i.qty)})`)
       .join("\n");
@@ -113,12 +149,19 @@ export function CartScreen({ navigation }: Props) {
           </View>
         </View>
         <Pressable
-          style={[styles.checkoutButton, selectedTotal === 0 && styles.checkoutButtonDisabled]}
-          onPress={checkoutViaWhatsapp}
-          disabled={selectedTotal === 0}
+          style={[styles.checkoutButton, (selectedTotal === 0 || checkingOut) && styles.checkoutButtonDisabled]}
+          onPress={checkout}
+          disabled={selectedTotal === 0 || checkingOut}
         >
-          <Text style={styles.checkoutText}>Checkout</Text>
+          {checkingOut ? (
+            <ActivityIndicator color={colors.white} />
+          ) : (
+            <Text style={styles.checkoutText}>Checkout</Text>
+          )}
         </Pressable>
+        {!isLoggedIn && (
+          <Text style={styles.loginHint}>Masuk ke akun Anda agar pesanan tersimpan otomatis.</Text>
+        )}
       </View>
       <View style={{ height: insets.bottom, backgroundColor: colors.surface }} />
     </Screen>
@@ -207,4 +250,10 @@ const styles = StyleSheet.create({
   },
   checkoutButtonDisabled: { opacity: 0.4 },
   checkoutText: { color: colors.white, fontWeight: "700", fontSize: 15 },
+  loginHint: {
+    marginTop: spacing.sm,
+    textAlign: "center",
+    fontSize: 11,
+    color: colors.onSurfaceVariant,
+  },
 });
