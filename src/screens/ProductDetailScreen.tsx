@@ -1,8 +1,10 @@
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, ScrollView, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Screen } from "../components/Screen";
-import { colors, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
+import { Text } from "../components/Text";
+import { Pressable } from "../components/Pressable";
+import { colors, fonts, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
 import { formatIDR } from "../lib/format";
 import { useCart } from "../state/CartContext";
 import { getProductById } from "../lib/api/products";
@@ -27,8 +29,11 @@ export function ProductDetailScreen({ route, navigation }: Props) {
   if (isLoading || !product) {
     return (
       <Screen>
-        <View style={styles.loading}>
-          <Text style={{ color: colors.onSurfaceVariant }}>Memuat...</Text>
+        <View style={styles.imageSkeleton} />
+        <View style={styles.content}>
+          <View style={styles.skeletonLine} />
+          <View style={[styles.skeletonLine, { width: "80%", height: 22, marginTop: spacing.xs }]} />
+          <View style={[styles.skeletonLine, { width: "40%", height: 24, marginTop: spacing.md }]} />
         </View>
       </Screen>
     );
@@ -70,7 +75,13 @@ export function ProductDetailScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  loading: { flex: 1, alignItems: "center", justifyContent: "center" },
+  imageSkeleton: { width: "100%", aspectRatio: 1, backgroundColor: colors.surfaceContainer },
+  skeletonLine: {
+    width: "50%",
+    height: 12,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surfaceContainer,
+  },
   backButton: {
     position: "absolute",
     top: spacing.sm,
@@ -104,5 +115,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  addButtonText: { color: colors.onPrimary, fontWeight: "700" },
+  addButtonText: { color: colors.onPrimary, fontFamily: fonts.body.bold },
 });

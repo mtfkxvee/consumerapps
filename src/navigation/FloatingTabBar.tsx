@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { MaterialTopTabBarProps } from "@react-navigation/material-top-tabs";
-import { colors, radius, spacing } from "../theme/colors";
+import { Text } from "../components/Text";
+import { Pressable } from "../components/Pressable";
+import { colors, fonts, radius, spacing } from "../theme/colors";
 
 const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   HomeTab: "home",
@@ -128,5 +130,5 @@ const styles = StyleSheet.create({
     backgroundColor: colors.secondary,
   },
   tab: { flex: 1, alignItems: "center", justifyContent: "center", gap: 4 },
-  label: { fontSize: 9.5, fontWeight: "600" },
+  label: { fontSize: 9.5, fontFamily: fonts.body.semiBold },
 });

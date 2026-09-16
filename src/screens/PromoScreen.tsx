@@ -1,12 +1,15 @@
 import { useWindowDimensions } from "react-native";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { FlatList, StyleSheet, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Screen } from "../components/Screen";
 import { ProductCard } from "../components/ProductCard";
+import { ProductCardSkeleton } from "../components/ProductCardSkeleton";
 import { CartButton } from "../components/CartButton";
 import { PromoBannerImage } from "../components/PromoBannerImage";
-import { colors, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
+import { Text } from "../components/Text";
+import { Pressable } from "../components/Pressable";
+import { colors, fonts, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
 import { useCart } from "../state/CartContext";
 import { getPromoBanners, getPromoProducts } from "../lib/api/products";
 import type { PromoStackParamList } from "../navigation/types";
@@ -45,6 +48,15 @@ export function PromoScreen({ navigation }: Props) {
         </View>
       </View>
 
+      {isLoading ? (
+        <View style={[styles.list, styles.grid]}>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <View key={i} style={styles.gridItem}>
+              <ProductCardSkeleton />
+            </View>
+          ))}
+        </View>
+      ) : (
       <FlatList
         data={products}
         numColumns={2}
@@ -93,6 +105,7 @@ export function PromoScreen({ navigation }: Props) {
           </View>
         )}
       />
+      )}
     </Screen>
   );
 }
@@ -103,6 +116,8 @@ const styles = StyleSheet.create({
   title: { ...typography.headlineMd, color: colors.onSurface },
   subtitle: { color: colors.onSurfaceVariant, fontSize: 12, marginTop: 2 },
   list: { padding: spacing.md, paddingTop: spacing.xs, paddingBottom: TAB_BAR_SPACE },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  gridItem: { width: "47.5%" },
   empty: { textAlign: "center", color: colors.onSurfaceVariant, paddingVertical: spacing.xxl },
   errorBox: {
     padding: spacing.md,
@@ -110,5 +125,5 @@ const styles = StyleSheet.create({
     backgroundColor: colors.errorContainer,
     alignItems: "center",
   },
-  errorText: { color: colors.error, fontSize: 13, fontWeight: "600" },
+  errorText: { color: colors.error, fontSize: 13, fontFamily: fonts.body.semiBold },
 });

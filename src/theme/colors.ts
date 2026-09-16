@@ -64,12 +64,31 @@ export const radius = {
   full: 999,
 };
 
+// Matches the web app's font pairing (src/styles.css in xsha-app):
+// Bricolage Grotesque for display/headline text, Plus Jakarta Sans for
+// everything else. Loaded in App.tsx via expo-font/useFonts — these are
+// the exact family names registered there.
+export const fonts = {
+  display: {
+    semiBold: "BricolageGrotesque_600SemiBold",
+    bold: "BricolageGrotesque_700Bold",
+    extraBold: "BricolageGrotesque_800ExtraBold",
+  },
+  body: {
+    regular: "PlusJakartaSans_400Regular",
+    medium: "PlusJakartaSans_500Medium",
+    semiBold: "PlusJakartaSans_600SemiBold",
+    bold: "PlusJakartaSans_700Bold",
+    extraBold: "PlusJakartaSans_800ExtraBold",
+  },
+} as const;
+
 export const typography = {
-  display: { fontSize: 32, fontWeight: "800" as const, letterSpacing: -0.5 },
-  headlineLg: { fontSize: 26, fontWeight: "700" as const },
-  headlineMd: { fontSize: 20, fontWeight: "700" as const },
-  bodyLg: { fontSize: 16, fontWeight: "400" as const },
-  bodyMd: { fontSize: 14, fontWeight: "400" as const },
-  label: { fontSize: 13, fontWeight: "600" as const },
-  price: { fontSize: 16, fontWeight: "800" as const },
+  display: { fontSize: 32, fontFamily: fonts.display.extraBold, letterSpacing: -0.5 },
+  headlineLg: { fontSize: 26, fontFamily: fonts.display.bold },
+  headlineMd: { fontSize: 20, fontFamily: fonts.display.bold },
+  bodyLg: { fontSize: 16, fontFamily: fonts.body.regular },
+  bodyMd: { fontSize: 14, fontFamily: fonts.body.regular },
+  label: { fontSize: 13, fontFamily: fonts.body.semiBold },
+  price: { fontSize: 16, fontFamily: fonts.body.extraBold },
 };

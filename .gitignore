@@ -40,3 +40,8 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# agent skills tooling (npx skills add) — local dev tooling, not app source
+/.agents/
+/.claude/skills/
+/skills-lock.json

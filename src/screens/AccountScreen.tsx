@@ -1,9 +1,10 @@
-import { useEffect } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Screen } from "../components/Screen";
-import { colors, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
+import { Text } from "../components/Text";
+import { Pressable } from "../components/Pressable";
+import { colors, fonts, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
 import { formatIDR } from "../lib/format";
 import { useAuth } from "../state/AuthContext";
 import { getMyLoyaltyStatus } from "../lib/api/loyalty";
@@ -25,7 +26,15 @@ export function AccountScreen() {
     enabled: isLoggedIn,
   });
 
-  if (isLoading) return <Screen />;
+  if (isLoading) {
+    return (
+      <Screen>
+        <View style={styles.loadingCenter}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      </Screen>
+    );
+  }
   if (!isLoggedIn) return <LoginScreen />;
 
   const displayName = user?.customer?.name ?? user?.email ?? "";
@@ -37,7 +46,8 @@ export function AccountScreen() {
           <View>
             <Text style={styles.title}>Akun Saya</Text>
             <Text style={styles.greeting}>
-              Halo, <Text style={{ color: colors.primary, fontWeight: "700" }}>{displayName}</Text>
+              Halo,{" "}
+              <Text style={{ color: colors.primary, fontFamily: fonts.body.bold }}>{displayName}</Text>
             </Text>
           </View>
           <Pressable style={styles.logoutButton} onPress={logout}>
@@ -109,7 +119,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 6,
   },
-  logoutText: { color: colors.error, fontSize: 12, fontWeight: "700" },
+  logoutText: { color: colors.error, fontSize: 12, fontFamily: fonts.body.bold },
   memberCard: {
     backgroundColor: colors.primary,
     borderRadius: radius.xl,
@@ -118,18 +128,26 @@ const styles = StyleSheet.create({
     minHeight: 140,
     justifyContent: "space-between",
   },
-  memberLevel: { color: colors.primaryFixed, fontSize: 11, fontWeight: "700", textTransform: "uppercase" },
-  memberName: { color: colors.onPrimary, fontSize: 20, fontWeight: "800", marginTop: 4 },
+  memberLevel: {
+    color: colors.primaryFixed,
+    fontSize: 11,
+    fontFamily: fonts.body.bold,
+    textTransform: "uppercase",
+  },
+  memberName: { color: colors.onPrimary, fontSize: 20, fontFamily: fonts.display.extraBold, marginTop: 4 },
   memberFooter: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
   memberId: { color: colors.primaryFixed, fontSize: 12, letterSpacing: 1 },
   pointsCard: {
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.lg,
     alignItems: "center",
     marginBottom: spacing.lg,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
   pointsLabel: { color: colors.onSurfaceVariant, fontSize: 12, marginTop: spacing.xs },
   pointsValue: { ...typography.display, color: colors.primary, marginTop: 4 },
@@ -137,9 +155,12 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
     overflow: "hidden",
+    shadowColor: colors.primary,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
   emptyText: { color: colors.onSurfaceVariant, textAlign: "center", padding: spacing.lg },
   orderRow: {
@@ -147,8 +168,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     padding: spacing.md,
   },
-  orderId: { fontWeight: "700", color: colors.onSurface, fontSize: 13 },
+  orderId: { fontFamily: fonts.body.bold, color: colors.onSurface, fontSize: 13 },
   orderDate: { color: colors.onSurfaceVariant, fontSize: 12 },
-  orderTotal: { fontWeight: "800", color: colors.onSurface, fontSize: 13 },
-  orderStatus: { color: colors.success, fontSize: 11, fontWeight: "700" },
+  orderTotal: { fontFamily: fonts.body.extraBold, color: colors.onSurface, fontSize: 13 },
+  orderStatus: { color: colors.success, fontSize: 11, fontFamily: fonts.body.bold },
+  loadingCenter: { flex: 1, alignItems: "center", justifyContent: "center" },
 });

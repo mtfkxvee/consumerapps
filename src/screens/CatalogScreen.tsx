@@ -1,11 +1,14 @@
 import { useMemo, useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { FlatList, StyleSheet, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Screen } from "../components/Screen";
 import { ProductCard } from "../components/ProductCard";
 import { CartButton } from "../components/CartButton";
-import { colors, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
+import { ProductCardSkeleton } from "../components/ProductCardSkeleton";
+import { Text } from "../components/Text";
+import { Pressable } from "../components/Pressable";
+import { colors, fonts, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
 import { useCart } from "../state/CartContext";
 import { getItemGroupChildren, getProducts } from "../lib/api/products";
 import type { CatalogStackParamList } from "../navigation/types";
@@ -102,6 +105,15 @@ export function CatalogScreen({ navigation, route }: Props) {
         </View>
       </View>
 
+      {isLoading && products.length === 0 ? (
+        <View style={[styles.list, styles.grid]}>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <View key={i} style={styles.gridItem}>
+              <ProductCardSkeleton />
+            </View>
+          ))}
+        </View>
+      ) : (
       <FlatList
         data={products}
         key="grid"
@@ -110,9 +122,7 @@ export function CatalogScreen({ navigation, route }: Props) {
         contentContainerStyle={styles.list}
         columnWrapperStyle={{ gap: spacing.sm }}
         ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
-        ListEmptyComponent={
-          !isLoading ? <Text style={styles.empty}>Tidak ada produk yang cocok.</Text> : null
-        }
+        ListEmptyComponent={<Text style={styles.empty}>Tidak ada produk yang cocok.</Text>}
         renderItem={({ item }) => (
           <View style={{ flex: 1 }}>
             <ProductCard
@@ -148,6 +158,7 @@ export function CatalogScreen({ navigation, route }: Props) {
           ) : null
         }
       />
+      )}
     </Screen>
   );
 }
@@ -168,7 +179,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceContainer,
   },
   chipActive: { backgroundColor: colors.primary },
-  chipText: { fontSize: 12, fontWeight: "600", color: colors.onSurfaceVariant },
+  chipText: { fontSize: 12, fontFamily: fonts.body.semiBold, color: colors.onSurfaceVariant },
   chipTextActive: { color: colors.onPrimary },
   sortRow: { flexDirection: "row", gap: spacing.xs, marginBottom: spacing.sm },
   sortChip: {
@@ -180,8 +191,10 @@ const styles = StyleSheet.create({
   },
   sortChipActive: { borderColor: colors.primary, backgroundColor: colors.primaryFixed },
   sortText: { fontSize: 11, color: colors.onSurfaceVariant },
-  sortTextActive: { color: colors.primary, fontWeight: "700" },
+  sortTextActive: { color: colors.primary, fontFamily: fonts.body.bold },
   list: { padding: spacing.md, paddingTop: spacing.xs, paddingBottom: TAB_BAR_SPACE },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  gridItem: { width: "47.5%" },
   empty: { textAlign: "center", color: colors.onSurfaceVariant, paddingVertical: spacing.xxl },
   pagination: {
     flexDirection: "row",
@@ -198,6 +211,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   pageButtonDisabled: { opacity: 0.4 },
-  pageButtonText: { fontSize: 12, fontWeight: "600", color: colors.onSurface },
+  pageButtonText: { fontSize: 12, fontFamily: fonts.body.semiBold, color: colors.onSurface },
   pageInfo: { fontSize: 12, color: colors.onSurfaceVariant },
 });

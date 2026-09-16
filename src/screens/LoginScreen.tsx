@@ -5,16 +5,16 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
+import { Text } from "../components/Text";
+import { Pressable } from "../components/Pressable";
+import { colors, fonts, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
 import { useAuth } from "../state/AuthContext";
 
 const HERO_IMAGE = require("../../assets/login-hero.jpg");
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     color: colors.white,
     fontSize: 26,
-    fontWeight: "800",
+    fontFamily: fonts.display.extraBold,
     letterSpacing: 1,
     textShadowColor: "rgba(0,0,0,0.35)",
     textShadowOffset: { width: 0, height: 1 },
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   },
   checkboxChecked: { backgroundColor: colors.primary, borderColor: colors.primary },
   rememberText: { fontSize: 13, color: colors.onSurfaceVariant },
-  linkText: { fontSize: 13, fontWeight: "700", color: colors.secondary },
+  linkText: { fontSize: 13, fontFamily: fonts.body.bold, color: colors.secondary },
   error: { color: colors.error, fontSize: 12, marginBottom: spacing.sm, textAlign: "center" },
   submitButton: {
     backgroundColor: colors.primary,
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: spacing.xs,
   },
-  submitButtonText: { color: colors.onPrimary, fontWeight: "700", fontSize: 15 },
+  submitButtonText: { color: colors.onPrimary, fontFamily: fonts.body.bold, fontSize: 15 },
   dividerText: {
     textAlign: "center",
     color: colors.onSurfaceVariant,

@@ -1,12 +1,9 @@
 import {
   FlatList,
-  Image,
   ImageBackground,
   Linking,
-  Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
   useWindowDimensions,
 } from "react-native";
@@ -15,9 +12,12 @@ import { useQuery } from "@tanstack/react-query";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Screen } from "../components/Screen";
 import { ProductCard } from "../components/ProductCard";
+import { ProductCardSkeleton } from "../components/ProductCardSkeleton";
 import { CartButton } from "../components/CartButton";
 import { PromoBannerImage } from "../components/PromoBannerImage";
-import { colors, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
+import { Text } from "../components/Text";
+import { Pressable } from "../components/Pressable";
+import { colors, fonts, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
 import { useCart } from "../state/CartContext";
 import { useAuth } from "../state/AuthContext";
 import {
@@ -196,11 +196,24 @@ export function HomeScreen({ navigation }: Props) {
               <Pressable style={styles.errorBox} onPress={() => refetchDeals()}>
                 <Text style={styles.errorText}>Gagal memuat promo. Coba lagi.</Text>
               </Pressable>
-            ) : !dealsLoading && (deals?.length ?? 0) === 0 ? (
+            ) : dealsLoading ? (
+              <FlatList
+                data={[0, 1, 2, 3]}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(i) => `skeleton-${i}`}
+                contentContainerStyle={{ gap: spacing.sm, paddingHorizontal: spacing.md }}
+                renderItem={() => (
+                  <View style={{ width: 160 }}>
+                    <ProductCardSkeleton />
+                  </View>
+                )}
+              />
+            ) : (deals?.length ?? 0) === 0 ? (
               <Text style={styles.emptyText}>Belum ada promo aktif saat ini.</Text>
             ) : (
               <FlatList
-                data={dealsLoading ? [] : deals}
+                data={deals}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 keyExtractor={(p) => p.id}
@@ -232,17 +245,23 @@ export function HomeScreen({ navigation }: Props) {
               <Text style={styles.sectionTitle}>Produk Pilihan</Text>
             </View>
             <View style={styles.grid}>
-              {products.map((p) => (
-                <View key={p.id} style={styles.gridItem}>
-                  <ProductCard
-                    product={p}
-                    onPress={() => navigation.navigate("ProductDetail", { id: p.id })}
-                    onAdd={() =>
-                      add({ id: p.id, name: p.name, price: p.price, image: p.image, alt: p.alt })
-                    }
-                  />
-                </View>
-              ))}
+              {productsLoading
+                ? Array.from({ length: 6 }).map((_, i) => (
+                    <View key={i} style={styles.gridItem}>
+                      <ProductCardSkeleton />
+                    </View>
+                  ))
+                : products.map((p) => (
+                    <View key={p.id} style={styles.gridItem}>
+                      <ProductCard
+                        product={p}
+                        onPress={() => navigation.navigate("ProductDetail", { id: p.id })}
+                        onAdd={() =>
+                          add({ id: p.id, name: p.name, price: p.price, image: p.image, alt: p.alt })
+                        }
+                      />
+                    </View>
+                  ))}
             </View>
           </View>
         </View>
@@ -277,7 +296,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     marginBottom: spacing.md,
   },
-  brand: { color: colors.onPrimary, fontSize: 20, fontWeight: "800", letterSpacing: 0.5 },
+  brand: { color: colors.onPrimary, fontSize: 20, fontFamily: fonts.display.extraBold, letterSpacing: 0.5 },
   headerIcons: { flexDirection: "row", gap: spacing.sm },
   headerIconButton: {
     width: 36,
@@ -297,7 +316,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.secondary,
   },
   greeting: { color: colors.primaryFixed, fontSize: 14, lineHeight: 20, marginBottom: spacing.md },
-  greetingName: { color: colors.onPrimary, fontWeight: "800", fontSize: 16 },
+  greetingName: { color: colors.onPrimary, fontFamily: fonts.body.extraBold, fontSize: 16 },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -319,12 +338,12 @@ const styles = StyleSheet.create({
   pointsLabel: {
     color: colors.white,
     fontSize: 10,
-    fontWeight: "800",
+    fontFamily: fonts.body.extraBold,
     letterSpacing: 1,
     opacity: 0.85,
     marginBottom: 2,
   },
-  pointsValue: { color: colors.white, fontSize: 15, fontWeight: "800" },
+  pointsValue: { color: colors.white, fontSize: 15, fontFamily: fonts.body.extraBold },
   pointsSubtext: { color: colors.white, fontSize: 11, opacity: 0.85, marginTop: 2 },
   body: { backgroundColor: colors.background, paddingTop: spacing.lg },
   section: { marginBottom: spacing.lg },
@@ -336,7 +355,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   sectionTitle: { ...typography.headlineMd, fontSize: 17, color: colors.onSurface },
-  seeAll: { fontSize: 12, fontWeight: "700", color: colors.secondary },
+  seeAll: { fontSize: 12, fontFamily: fonts.body.bold, color: colors.secondary },
   categoryGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -367,7 +386,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.errorContainer,
     alignItems: "center",
   },
-  errorText: { color: colors.error, fontSize: 13, fontWeight: "600" },
+  errorText: { color: colors.error, fontSize: 13, fontFamily: fonts.body.semiBold },
   emptyText: {
     marginHorizontal: spacing.md,
     color: colors.onSurfaceVariant,

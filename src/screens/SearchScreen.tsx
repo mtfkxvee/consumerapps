@@ -1,12 +1,15 @@
 import { useMemo, useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { FlatList, StyleSheet, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Screen } from "../components/Screen";
 import { ProductCard } from "../components/ProductCard";
+import { ProductCardSkeleton } from "../components/ProductCardSkeleton";
 import { CartButton } from "../components/CartButton";
-import { colors, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
+import { Text } from "../components/Text";
+import { Pressable } from "../components/Pressable";
+import { colors, fonts, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
 import { useCart } from "../state/CartContext";
 import { getItemGroupChildren, getProducts } from "../lib/api/products";
 import type { SearchStackParamList } from "../navigation/types";
@@ -83,6 +86,15 @@ export function SearchScreen({ navigation, route }: Props) {
         </View>
       </View>
 
+      {isBrowsing && isLoading ? (
+        <View style={[styles.list, styles.grid]}>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <View key={i} style={styles.gridItem}>
+              <ProductCardSkeleton />
+            </View>
+          ))}
+        </View>
+      ) : (
       <FlatList
         data={products}
         key="grid"
@@ -151,6 +163,7 @@ export function SearchScreen({ navigation, route }: Props) {
           </View>
         )}
       />
+      )}
     </Screen>
   );
 }
@@ -190,7 +203,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: spacing.sm,
   },
-  resetText: { fontSize: 12, fontWeight: "700", color: colors.secondary },
+  resetText: { fontSize: 12, fontFamily: fonts.body.bold, color: colors.secondary },
   list: { padding: spacing.md, paddingTop: spacing.xs, paddingBottom: TAB_BAR_SPACE },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  gridItem: { width: "47.5%" },
   empty: { textAlign: "center", color: colors.onSurfaceVariant, paddingVertical: spacing.xxl },
 });

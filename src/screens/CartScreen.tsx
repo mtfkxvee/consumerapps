@@ -5,16 +5,16 @@ import {
   FlatList,
   Image,
   Linking,
-  Pressable,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Screen } from "../components/Screen";
-import { colors, radius, spacing, typography } from "../theme/colors";
+import { Text } from "../components/Text";
+import { Pressable } from "../components/Pressable";
+import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { formatIDR } from "../lib/format";
 import { useCart } from "../state/CartContext";
 import { useAuth } from "../state/AuthContext";
@@ -186,9 +186,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     padding: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
     alignItems: "flex-start",
+    shadowColor: colors.primary,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
   },
   checkbox: {
     width: 20,
@@ -202,9 +205,9 @@ const styles = StyleSheet.create({
   },
   checkboxChecked: { backgroundColor: colors.primary, borderColor: colors.primary },
   image: { width: 64, height: 64, borderRadius: radius.md, backgroundColor: colors.surfaceContainer },
-  itemName: { fontSize: 13, fontWeight: "600", color: colors.onSurface, marginBottom: 4 },
+  itemName: { fontSize: 13, fontFamily: fonts.body.semiBold, color: colors.onSurface, marginBottom: 4 },
   priceRow: { flexDirection: "row", alignItems: "baseline", gap: spacing.xs, marginBottom: spacing.xs },
-  itemPrice: { fontSize: 14, fontWeight: "800", color: colors.onSurface },
+  itemPrice: { fontSize: 14, fontFamily: fonts.body.extraBold, color: colors.onSurface },
   oldPrice: { fontSize: 11, color: colors.onSurfaceVariant, textDecorationLine: "line-through" },
   bottomRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   qtyRow: {
@@ -225,7 +228,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  qtyText: { fontSize: 13, fontWeight: "700", color: colors.onSurface, minWidth: 14, textAlign: "center" },
+  qtyText: {
+    fontSize: 13,
+    fontFamily: fonts.body.bold,
+    color: colors.onSurface,
+    minWidth: 14,
+    textAlign: "center",
+  },
   footer: {
     padding: spacing.md,
     borderTopWidth: 1,
@@ -239,7 +248,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   selectAllRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  selectAllText: { fontSize: 13, color: colors.onSurface, fontWeight: "600" },
+  selectAllText: { fontSize: 13, color: colors.onSurface, fontFamily: fonts.body.semiBold },
   totalLabel: { fontSize: 11, color: colors.onSurfaceVariant, textAlign: "right" },
   totalValue: { ...typography.headlineMd, fontSize: 18, color: colors.onSurface },
   checkoutButton: {
@@ -249,7 +258,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   checkoutButtonDisabled: { opacity: 0.4 },
-  checkoutText: { color: colors.white, fontWeight: "700", fontSize: 15 },
+  checkoutText: { color: colors.white, fontFamily: fonts.body.bold, fontSize: 15 },
   loginHint: {
     marginTop: spacing.sm,
     textAlign: "center",

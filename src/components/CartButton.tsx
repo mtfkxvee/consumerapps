@@ -1,7 +1,9 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, radius } from "../theme/colors";
+import { Text } from "./Text";
+import { Pressable } from "./Pressable";
+import { colors, fonts, radius } from "../theme/colors";
 import { useCart } from "../state/CartContext";
 
 type Props = { tone?: "light" | "dark" };
@@ -51,5 +53,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 3,
   },
-  badgeText: { color: colors.white, fontSize: 9, fontWeight: "800" },
+  badgeText: { color: colors.white, fontSize: 9, fontFamily: fonts.body.extraBold },
 });

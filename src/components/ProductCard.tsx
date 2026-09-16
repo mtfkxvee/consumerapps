@@ -1,6 +1,8 @@
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, radius, spacing, typography } from "../theme/colors";
+import { Text } from "./Text";
+import { Pressable } from "./Pressable";
+import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { formatIDR } from "../lib/format";
 import type { Product, PromoProduct } from "../lib/types";
 
@@ -65,8 +67,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     padding: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
+    // A soft, brand-tinted shadow instead of a border — separation without
+    // the "card = border + shadow + white bg" look every AI-generated grid
+    // defaults to.
+    shadowColor: colors.primary,
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
   imageWrap: {
     aspectRatio: 1,
@@ -85,9 +93,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  badgeText: { color: colors.onPrimary, fontSize: 10, fontWeight: "800" },
+  badgeText: { color: colors.onPrimary, fontSize: 10, fontFamily: fonts.body.extraBold },
   category: { fontSize: 11, color: colors.secondary, marginBottom: 2 },
-  name: { fontSize: 13, fontWeight: "600", color: colors.onSurface, minHeight: 34 },
+  name: { fontSize: 13, fontFamily: fonts.body.semiBold, color: colors.onSurface, minHeight: 34 },
   footer: {
     marginTop: spacing.xs,
     flexDirection: "row",
