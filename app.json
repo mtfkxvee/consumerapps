@@ -40,7 +40,8 @@
           "backgroundColor": "#3D1F73"
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-web-browser"
     ]
   }
 }

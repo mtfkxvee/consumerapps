@@ -20,19 +20,28 @@ import { useAuth } from "../state/AuthContext";
 const HERO_IMAGE = require("../../assets/login-hero.jpg");
 
 export function LoginScreen() {
-  const { login } = useAuth();
+  const { login, loginGoogle } = useAuth();
   const [usr, setUsr] = useState("");
   const [pwd, setPwd] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleSubmit = async () => {
     setError(null);
     setLoading(true);
     const res = await login(usr, pwd);
     setLoading(false);
+    if (!res.ok) setError(res.message);
+  };
+
+  const handleGoogleLogin = async () => {
+    setError(null);
+    setGoogleLoading(true);
+    const res = await loginGoogle();
+    setGoogleLoading(false);
     if (!res.ok) setError(res.message);
   };
 
@@ -117,8 +126,16 @@ export function LoginScreen() {
             <Text style={styles.dividerText}>Atau masuk dengan</Text>
 
             <View style={styles.socialRow}>
-              <Pressable style={styles.socialButton} onPress={notAvailable}>
-                <Ionicons name="logo-google" size={20} color="#EA4335" />
+              <Pressable
+                style={styles.socialButton}
+                onPress={handleGoogleLogin}
+                disabled={googleLoading}
+              >
+                {googleLoading ? (
+                  <ActivityIndicator size="small" color="#EA4335" />
+                ) : (
+                  <Ionicons name="logo-google" size={20} color="#EA4335" />
+                )}
               </Pressable>
               <Pressable style={styles.socialButton} onPress={notAvailable}>
                 <Ionicons name="logo-facebook" size={20} color="#1877F2" />

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import { getCurrentCustomer, loginCustomer, logoutCustomer } from "../lib/api/auth";
+import { getCurrentCustomer, loginCustomer, loginWithGoogle, logoutCustomer } from "../lib/api/auth";
 import type { CurrentUser } from "../lib/types";
 
 type AuthContextValue = {
@@ -7,6 +7,7 @@ type AuthContextValue = {
   isLoading: boolean;
   isLoggedIn: boolean;
   login: (usr: string, pwd: string) => Promise<{ ok: true } | { ok: false; message: string }>;
+  loginGoogle: () => Promise<{ ok: true } | { ok: false; message: string }>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -37,13 +38,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [refresh],
   );
 
+  const loginGoogle = useCallback(async () => {
+    const res = await loginWithGoogle();
+    if (res.ok) await refresh();
+    return res;
+  }, [refresh]);
+
   const logout = useCallback(async () => {
     await logoutCustomer();
     setUser(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isLoggedIn: user !== null, login, logout, refresh }}>
+    <AuthContext.Provider
+      value={{ user, isLoading, isLoggedIn: user !== null, login, loginGoogle, logout, refresh }}
+    >
       {children}
     </AuthContext.Provider>
   );

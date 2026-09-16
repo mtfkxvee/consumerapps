@@ -1,5 +1,12 @@
-import { apiRequest, clearToken, isApiConfigured, setToken } from "./client";
+import * as WebBrowser from "expo-web-browser";
+import { API_URL, apiRequest, clearToken, isApiConfigured, setToken } from "./client";
 import type { CurrentUser } from "../types";
+
+// Custom scheme registered in app.json ("scheme": "xsha") — the server's
+// Google callback redirects here once sign-in/sign-up is done, and
+// openAuthSessionAsync below watches for exactly this prefix to know the
+// flow is finished.
+const GOOGLE_AUTH_RETURN_URL = "xsha://auth";
 
 const MOCK_USER: CurrentUser = {
   email: "demo@x-sha.id",
@@ -35,6 +42,32 @@ export async function loginCustomer(
     return { ok: true };
   }
   return res;
+}
+
+export async function loginWithGoogle(): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (!isApiConfigured() || !API_URL) {
+    return { ok: false, message: "Login Google butuh koneksi ke server." };
+  }
+
+  const authUrl = `${API_URL}/api/mobile/auth/google/start`;
+  const result = await WebBrowser.openAuthSessionAsync(authUrl, GOOGLE_AUTH_RETURN_URL);
+
+  if (result.type !== "success" || !result.url) {
+    return { ok: false, message: "Login Google dibatalkan." };
+  }
+
+  const parsed = new URL(result.url);
+  const ok = parsed.searchParams.get("ok");
+  if (ok !== "1") {
+    const message = parsed.searchParams.get("message") ?? "Login Google gagal.";
+    return { ok: false, message };
+  }
+
+  const token = parsed.searchParams.get("token");
+  if (!token) return { ok: false, message: "Login Google gagal: token tidak ditemukan." };
+
+  await setToken(token);
+  return { ok: true };
 }
 
 export async function logoutCustomer(): Promise<void> {
