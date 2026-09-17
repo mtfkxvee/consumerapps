@@ -58,12 +58,12 @@ export function AccountScreen() {
           </Pressable>
         </View>
 
-        <Pressable style={styles.memberCard} onPress={() => navigation.navigate("MemberQr" as never)}>
+        <Pressable style={styles.memberCard} onPress={() => navigation.navigate("MemberBarcode" as never)}>
           <Text style={styles.memberLevel}>{loyalty?.level ?? "Member"}</Text>
           <Text style={styles.memberName}>{displayName}</Text>
           <View style={styles.memberFooter}>
             <Text style={styles.memberId}>{user?.customer?.kodePelanggan ?? user?.customer?.id}</Text>
-            <Ionicons name="qr-code-outline" size={28} color={colors.onPrimary} />
+            <Ionicons name="barcode-outline" size={28} color={colors.onPrimary} />
           </View>
         </Pressable>
 

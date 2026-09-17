@@ -1,16 +1,16 @@
 import { StyleSheet, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import QRCode from "react-native-qrcode-svg";
+import Barcode from "react-native-barcode-svg";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
 import { colors, fonts, radius, spacing } from "../theme/colors";
 import { useAuth } from "../state/AuthContext";
 
-// Full-screen QR code of the member's Kode Pelanggan, for outlet staff to
+// Full-screen barcode of the member's Kode Pelanggan, for outlet staff to
 // scan at checkout — same code as printed on a physical membership card,
 // or the XAPP##### one minted for an app/web sign-up.
-export function MemberQrScreen() {
+export function MemberBarcodeScreen() {
   const navigation = useNavigation();
   const { user } = useAuth();
   const code = user?.customer?.kodePelanggan;
@@ -25,16 +25,23 @@ export function MemberQrScreen() {
         <Text style={styles.title}>Kartu Member</Text>
         <Text style={styles.subtitle}>{user?.customer?.name ?? user?.email}</Text>
 
-        <View style={styles.qrWrap}>
+        <View style={styles.barcodeWrap}>
           {code ? (
-            <QRCode value={code} size={220} color={colors.onSurface} backgroundColor={colors.surface} />
+            <Barcode
+              value={code}
+              format="CODE128"
+              height={110}
+              maxWidth={260}
+              lineColor={colors.onSurface}
+              backgroundColor={colors.surface}
+            />
           ) : (
             <Text style={styles.noCode}>Kode pelanggan belum tersedia.</Text>
           )}
         </View>
 
         {code && <Text style={styles.code}>{code}</Text>}
-        <Text style={styles.hint}>Tunjukkan barcode ini ke kasir untuk memindai.</Text>
+        <Text style={styles.hint}>Tunjukkan barcode ini ke kasir untuk dipindai.</Text>
       </View>
     </View>
   );
@@ -57,21 +64,22 @@ const styles = StyleSheet.create({
   content: { flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.lg },
   title: { fontSize: 20, fontFamily: fonts.display.bold, color: colors.onSurface },
   subtitle: { fontSize: 13, color: colors.onSurfaceVariant, marginTop: 4, marginBottom: spacing.xl },
-  qrWrap: {
+  barcodeWrap: {
     backgroundColor: colors.surface,
-    padding: spacing.lg,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.md,
     borderRadius: radius.xl,
     shadowColor: colors.primary,
     shadowOpacity: 0.1,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },
     elevation: 3,
-    minHeight: 220,
-    minWidth: 220,
+    minHeight: 140,
+    minWidth: 280,
     alignItems: "center",
     justifyContent: "center",
   },
-  noCode: { color: colors.onSurfaceVariant, textAlign: "center", fontSize: 13, maxWidth: 180 },
+  noCode: { color: colors.onSurfaceVariant, textAlign: "center", fontSize: 13, maxWidth: 200 },
   code: {
     marginTop: spacing.lg,
     fontSize: 18,

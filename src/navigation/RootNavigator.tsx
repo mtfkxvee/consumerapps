@@ -9,7 +9,7 @@ import { ProductDetailScreen } from "../screens/ProductDetailScreen";
 import { CartScreen } from "../screens/CartScreen";
 import { AccountScreen } from "../screens/AccountScreen";
 import { CompleteProfileScreen } from "../screens/CompleteProfileScreen";
-import { MemberQrScreen } from "../screens/MemberQrScreen";
+import { MemberBarcodeScreen } from "../screens/MemberBarcodeScreen";
 import { EditProfileScreen } from "../screens/EditProfileScreen";
 import { FloatingTabBar } from "./FloatingTabBar";
 import { useAuth } from "../state/AuthContext";
@@ -100,8 +100,8 @@ export function RootNavigator() {
           options={{ presentation: "modal", animation: "slide_from_right" }}
         />
         <RootStack.Screen
-          name="MemberQr"
-          component={MemberQrScreen}
+          name="MemberBarcode"
+          component={MemberBarcodeScreen}
           options={{ presentation: "modal" }}
         />
         <RootStack.Screen
