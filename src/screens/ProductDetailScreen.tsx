@@ -21,12 +21,17 @@ export function ProductDetailScreen({ route, navigation }: Props) {
   const { id } = route.params;
   const { add } = useCart();
 
-  const { data: product, isLoading } = useQuery({
+  const {
+    data: product,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["product", id],
     queryFn: () => getProductById(id),
   });
 
-  if (isLoading || !product) {
+  if (isLoading) {
     return (
       <Screen>
         <View style={styles.imageSkeleton} />
@@ -34,6 +39,25 @@ export function ProductDetailScreen({ route, navigation }: Props) {
           <View style={styles.skeletonLine} />
           <View style={[styles.skeletonLine, { width: "80%", height: 22, marginTop: spacing.xs }]} />
           <View style={[styles.skeletonLine, { width: "40%", height: 24, marginTop: spacing.md }]} />
+        </View>
+      </Screen>
+    );
+  }
+
+  if (isError || !product) {
+    return (
+      <Screen>
+        <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="chevron-back" size={20} color={colors.onSurface} />
+        </Pressable>
+        <View style={styles.center}>
+          {isError ? (
+            <Pressable style={styles.errorBox} onPress={() => refetch()}>
+              <Text style={styles.errorText}>Gagal memuat produk. Ketuk untuk coba lagi.</Text>
+            </Pressable>
+          ) : (
+            <Text style={styles.errorText}>Produk tidak ditemukan.</Text>
+          )}
         </View>
       </Screen>
     );
@@ -76,6 +100,9 @@ export function ProductDetailScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
   imageSkeleton: { width: "100%", aspectRatio: 1, backgroundColor: colors.surfaceContainer },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.lg },
+  errorBox: { padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.errorContainer },
+  errorText: { color: colors.error, fontSize: 13, fontFamily: fonts.body.semiBold, textAlign: "center" },
   skeletonLine: {
     width: "50%",
     height: 12,

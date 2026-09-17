@@ -108,7 +108,12 @@ export function CatalogScreen({ navigation, route }: Props) {
     [query, selected, selectedOutlet, sort, page],
   );
 
-  const { data, isLoading } = useQuery({
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["products", productQuery],
     queryFn: () => getProducts(productQuery),
   });
@@ -186,7 +191,13 @@ export function CatalogScreen({ navigation, route }: Props) {
         </View>
       </View>
 
-      {isLoading && products.length === 0 ? (
+      {isError ? (
+        <View style={styles.center}>
+          <Pressable style={styles.errorBox} onPress={() => refetch()}>
+            <Text style={styles.errorText}>Gagal memuat produk. Ketuk untuk coba lagi.</Text>
+          </Pressable>
+        </View>
+      ) : isLoading && products.length === 0 ? (
         <View style={[styles.list, styles.grid]}>
           {Array.from({ length: 6 }).map((_, i) => (
             <View key={i} style={styles.gridItem}>
@@ -277,6 +288,9 @@ const styles = StyleSheet.create({
   grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   gridItem: { width: "47.5%" },
   empty: { textAlign: "center", color: colors.onSurfaceVariant, paddingVertical: spacing.xxl },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.lg },
+  errorBox: { padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.errorContainer },
+  errorText: { color: colors.error, fontSize: 13, fontFamily: fonts.body.semiBold, textAlign: "center" },
   pagination: {
     flexDirection: "row",
     alignItems: "center",

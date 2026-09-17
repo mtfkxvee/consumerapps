@@ -91,7 +91,12 @@ export function SearchScreen({ navigation, route }: Props) {
     [query, department, selectedOutlet, sort, page],
   );
 
-  const { data, isLoading } = useQuery({
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["products", "search", productQuery],
     queryFn: () => getProducts(productQuery),
     enabled: query.length > 0 || department.length > 0,
@@ -131,7 +136,13 @@ export function SearchScreen({ navigation, route }: Props) {
         </View>
       </View>
 
-      {isBrowsing && isLoading ? (
+      {isBrowsing && isError ? (
+        <View style={styles.center}>
+          <Pressable style={styles.errorBox} onPress={() => refetch()}>
+            <Text style={styles.errorText}>Gagal memuat produk. Ketuk untuk coba lagi.</Text>
+          </Pressable>
+        </View>
+      ) : isBrowsing && isLoading ? (
         <View style={[styles.list, styles.grid]}>
           {Array.from({ length: 6 }).map((_, i) => (
             <View key={i} style={styles.gridItem}>
@@ -374,6 +385,9 @@ const styles = StyleSheet.create({
   grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   gridItem: { width: "47.5%" },
   empty: { textAlign: "center", color: colors.onSurfaceVariant, paddingVertical: spacing.xxl },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.lg },
+  errorBox: { padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.errorContainer },
+  errorText: { color: colors.error, fontSize: 13, fontFamily: fonts.body.semiBold, textAlign: "center" },
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
   sheet: {
     backgroundColor: colors.surface,
