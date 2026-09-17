@@ -1,9 +1,11 @@
+import { useState } from "react";
 import {
   FlatList,
   ImageBackground,
   Linking,
   ScrollView,
   StyleSheet,
+  TextInput,
   View,
   useWindowDimensions,
 } from "react-native";
@@ -51,8 +53,21 @@ export function HomeScreen({ navigation }: Props) {
   const { add } = useCart();
   const { width } = useWindowDimensions();
   const { user, isLoggedIn } = useAuth();
+  const [searchText, setSearchText] = useState("");
 
   const goToTab = (tab: string) => navigation.getParent()?.navigate(tab as never);
+
+  // Typing happens right here on Beranda — only submitting (pressing
+  // enter/search on the keyboard) hands off to the Search tab, passing the
+  // typed text along as its initial query.
+  const submitSearch = () => {
+    const q = searchText.trim();
+    const parentNavigate = navigation.getParent()?.navigate as
+      | ((name: string, params?: object) => void)
+      | undefined;
+    parentNavigate?.("SearchTab", { screen: "Search", params: q ? { q } : undefined });
+    setSearchText("");
+  };
 
   const { data: departments } = useQuery({
     queryKey: ["item-groups", "root"],
@@ -127,10 +142,18 @@ export function HomeScreen({ navigation }: Props) {
             <OutletPicker />
           </View>
 
-          <Pressable style={styles.searchBar} onPress={() => goToTab("SearchTab")}>
+          <View style={styles.searchBar}>
             <Ionicons name="search" size={16} color={colors.onSurfaceVariant} />
-            <Text style={styles.searchPlaceholder}>Cari produk halal favorit kamu...</Text>
-          </Pressable>
+            <TextInput
+              style={styles.searchInput}
+              value={searchText}
+              onChangeText={setSearchText}
+              onSubmitEditing={submitSearch}
+              returnKeyType="search"
+              placeholder="Cari produk halal favorit kamu..."
+              placeholderTextColor={colors.onSurfaceVariant}
+            />
+          </View>
 
           {isLoggedIn ? (
             <Pressable style={styles.pointsBanner} onPress={() => goToTab("AccountTab")}>
@@ -332,7 +355,7 @@ const styles = StyleSheet.create({
     height: 46,
     marginBottom: spacing.md,
   },
-  searchPlaceholder: { color: colors.onSurfaceVariant, fontSize: 13 },
+  searchInput: { flex: 1, color: colors.onSurface, fontSize: 13 },
   pointsBanner: {
     flexDirection: "row",
     alignItems: "center",

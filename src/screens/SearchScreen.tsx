@@ -53,6 +53,19 @@ export function SearchScreen({ navigation, route }: Props) {
     getSearchHistory().then(setHistory);
   }, []);
 
+  // The Search tab stays mounted once visited, so arriving here again from
+  // Beranda's search bar (a new navigation with a different `q`) wouldn't
+  // otherwise update anything — this re-syncs the query whenever `q` itself
+  // actually changes, and still saves it to history like a normal search.
+  useEffect(() => {
+    if (route.params?.q !== undefined) {
+      setQuery(route.params.q);
+      setPage(1);
+      if (route.params.q.trim()) addSearchTerm(route.params.q.trim()).then(setHistory);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route.params?.q]);
+
   const runSearch = (term: string) => {
     setQuery(term);
     setPage(1);
