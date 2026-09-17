@@ -1,12 +1,19 @@
+import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { API_URL, apiRequest, clearToken, isApiConfigured, setToken } from "./client";
 import type { CurrentUser } from "../types";
 
-// Custom scheme registered in app.json ("scheme": "xsha") — the server's
-// Google callback redirects here once sign-in/sign-up is done, and
-// openAuthSessionAsync below watches for exactly this prefix to know the
-// flow is finished.
-const GOOGLE_AUTH_RETURN_URL = "xsha://auth";
+// Linking.createURL builds the right return URL for however the app is
+// currently running: the "xsha://" scheme from app.json in a standalone/
+// dev-client build, but an "exp://<lan-ip>:8081/--/auth" URL when running
+// in Expo Go — Expo Go isn't registered for "xsha://" at all, so a
+// hardcoded scheme here would leave the in-app browser with nowhere to
+// return to once Google finishes. The server echoes whatever we send back
+// unmodified (see google/start's `client_redirect` param), so this one
+// call keeps both environments working without any extra configuration.
+function googleAuthReturnUrl(): string {
+  return Linking.createURL("auth");
+}
 
 const MOCK_USER: CurrentUser = {
   email: "demo@x-sha.id",
@@ -51,8 +58,9 @@ export async function loginWithGoogle(): Promise<
     return { ok: false, message: "Login Google butuh koneksi ke server." };
   }
 
-  const authUrl = `${API_URL}/api/mobile/auth/google/start`;
-  const result = await WebBrowser.openAuthSessionAsync(authUrl, GOOGLE_AUTH_RETURN_URL);
+  const returnUrl = googleAuthReturnUrl();
+  const authUrl = `${API_URL}/api/mobile/auth/google/start?client_redirect=${encodeURIComponent(returnUrl)}`;
+  const result = await WebBrowser.openAuthSessionAsync(authUrl, returnUrl);
 
   if (result.type !== "success" || !result.url) {
     return { ok: false, message: "Login Google dibatalkan." };
