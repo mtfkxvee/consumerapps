@@ -42,4 +42,6 @@ export type RootTabParamList = {
 export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<RootTabParamList>;
   Cart: undefined;
+  MemberQr: undefined;
+  EditProfile: undefined;
 };

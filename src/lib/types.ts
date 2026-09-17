@@ -35,6 +35,7 @@ export type Customer = {
   email: string | null;
   loyaltyProgram: string | null;
   birthDate: string | null;
+  kodePelanggan: string | null;
 };
 
 export type CurrentUser = {

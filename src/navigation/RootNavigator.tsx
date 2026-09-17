@@ -9,6 +9,8 @@ import { ProductDetailScreen } from "../screens/ProductDetailScreen";
 import { CartScreen } from "../screens/CartScreen";
 import { AccountScreen } from "../screens/AccountScreen";
 import { CompleteProfileScreen } from "../screens/CompleteProfileScreen";
+import { MemberQrScreen } from "../screens/MemberQrScreen";
+import { EditProfileScreen } from "../screens/EditProfileScreen";
 import { FloatingTabBar } from "./FloatingTabBar";
 import { useAuth } from "../state/AuthContext";
 import type {
@@ -95,6 +97,16 @@ export function RootNavigator() {
         <RootStack.Screen
           name="Cart"
           component={CartScreen}
+          options={{ presentation: "modal", animation: "slide_from_right" }}
+        />
+        <RootStack.Screen
+          name="MemberQr"
+          component={MemberQrScreen}
+          options={{ presentation: "modal" }}
+        />
+        <RootStack.Screen
+          name="EditProfile"
+          component={EditProfileScreen}
           options={{ presentation: "modal", animation: "slide_from_right" }}
         />
       </RootStack.Navigator>

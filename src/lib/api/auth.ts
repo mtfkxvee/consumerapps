@@ -25,6 +25,7 @@ const MOCK_USER: CurrentUser = {
     email: "demo@x-sha.id",
     loyaltyProgram: "MEMBER",
     birthDate: null,
+    kodePelanggan: "XAPP00000",
   },
 };
 

@@ -1,4 +1,5 @@
 import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Screen } from "../components/Screen";
@@ -12,6 +13,7 @@ import { getMyOrders } from "../lib/api/orders";
 import { LoginScreen } from "./LoginScreen";
 
 export function AccountScreen() {
+  const navigation = useNavigation();
   const { user, isLoading, isLoggedIn, logout } = useAuth();
 
   const { data: loyalty } = useQuery({
@@ -56,14 +58,23 @@ export function AccountScreen() {
           </Pressable>
         </View>
 
-        <View style={styles.memberCard}>
+        <Pressable style={styles.memberCard} onPress={() => navigation.navigate("MemberQr" as never)}>
           <Text style={styles.memberLevel}>{loyalty?.level ?? "Member"}</Text>
           <Text style={styles.memberName}>{displayName}</Text>
           <View style={styles.memberFooter}>
-            <Text style={styles.memberId}>{user?.customer?.id}</Text>
+            <Text style={styles.memberId}>{user?.customer?.kodePelanggan ?? user?.customer?.id}</Text>
             <Ionicons name="qr-code-outline" size={28} color={colors.onPrimary} />
           </View>
-        </View>
+        </Pressable>
+
+        <Pressable
+          style={styles.editProfileRow}
+          onPress={() => navigation.navigate("EditProfile" as never)}
+        >
+          <Ionicons name="create-outline" size={16} color={colors.primary} />
+          <Text style={styles.editProfileText}>Ubah Data Diri</Text>
+          <Ionicons name="chevron-forward" size={16} color={colors.onSurfaceVariant} />
+        </Pressable>
 
         <View style={styles.pointsCard}>
           <Ionicons name="star" size={28} color={colors.primary} />
@@ -137,6 +148,22 @@ const styles = StyleSheet.create({
   memberName: { color: colors.onPrimary, fontSize: 20, fontFamily: fonts.display.extraBold, marginTop: 4 },
   memberFooter: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
   memberId: { color: colors.primaryFixed, fontSize: 12, letterSpacing: 1 },
+  editProfileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.lg,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  editProfileText: { flex: 1, fontSize: 13, fontFamily: fonts.body.semiBold, color: colors.onSurface },
   pointsCard: {
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
