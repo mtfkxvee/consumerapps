@@ -15,6 +15,7 @@ import { ProductCard } from "../components/ProductCard";
 import { ProductCardSkeleton } from "../components/ProductCardSkeleton";
 import { CartButton } from "../components/CartButton";
 import { PromoBannerImage } from "../components/PromoBannerImage";
+import { OutletPicker } from "../components/OutletPicker";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
 import { colors, fonts, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
@@ -121,6 +122,10 @@ export function HomeScreen({ navigation }: Props) {
             Selamat datang,{"\n"}
             <Text style={styles.greetingName}>{displayName}</Text> 👋
           </Text>
+
+          <View style={{ marginBottom: spacing.md }}>
+            <OutletPicker />
+          </View>
 
           <Pressable style={styles.searchBar} onPress={() => goToTab("SearchTab")}>
             <Ionicons name="search" size={16} color={colors.onSurfaceVariant} />

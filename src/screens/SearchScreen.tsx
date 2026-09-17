@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { FlatList, StyleSheet, TextInput, View } from "react-native";
+import { FlatList, Modal, StyleSheet, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -7,7 +7,6 @@ import { Screen } from "../components/Screen";
 import { ProductCard } from "../components/ProductCard";
 import { ProductCardSkeleton } from "../components/ProductCardSkeleton";
 import { CartButton } from "../components/CartButton";
-import { OutletPicker } from "../components/OutletPicker";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
 import { colors, fonts, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
@@ -31,6 +30,12 @@ function iconForGroup(name: string): keyof typeof Ionicons.glyphMap {
   return CATEGORY_ICONS[name.toUpperCase()] ?? "pricetag-outline";
 }
 
+const SORT_OPTIONS = [
+  { label: "Relevan", value: "relevance" as const },
+  { label: "Termurah", value: "price_asc" as const },
+  { label: "Termahal", value: "price_desc" as const },
+];
+
 type Props = NativeStackScreenProps<SearchStackParamList, "Search">;
 
 export function SearchScreen({ navigation, route }: Props) {
@@ -38,7 +43,9 @@ export function SearchScreen({ navigation, route }: Props) {
   const { selectedOutlet } = useOutlet();
   const [query, setQuery] = useState(route.params?.q ?? "");
   const [department, setDepartment] = useState("");
+  const [sort, setSort] = useState<ProductQuery["sort"]>("relevance");
   const [page, setPage] = useState(1);
+  const [filterOpen, setFilterOpen] = useState(false);
 
   const { data: departments } = useQuery({
     queryKey: ["item-groups", "root"],
@@ -51,11 +58,11 @@ export function SearchScreen({ navigation, route }: Props) {
       search: query || undefined,
       itemGroup: department || undefined,
       warehouse: selectedOutlet?.warehouse ?? undefined,
-      sort: "relevance",
+      sort,
       page,
       pageSize: PAGE_SIZE,
     }),
-    [query, department, selectedOutlet, page],
+    [query, department, selectedOutlet, sort, page],
   );
 
   const { data, isLoading } = useQuery({
@@ -66,6 +73,7 @@ export function SearchScreen({ navigation, route }: Props) {
 
   const products = data?.products ?? [];
   const isBrowsing = query.length > 0 || department.length > 0;
+  const activeFilterCount = (department ? 1 : 0) + (sort !== "relevance" ? 1 : 0);
 
   return (
     <Screen>
@@ -84,11 +92,15 @@ export function SearchScreen({ navigation, route }: Props) {
                 setPage(1);
               }}
             />
-            <Ionicons name="options-outline" size={18} color={colors.primary} />
+            <Pressable onPress={() => setFilterOpen(true)} hitSlop={8}>
+              <View>
+                <Ionicons name="options-outline" size={18} color={colors.primary} />
+                {activeFilterCount > 0 && <View style={styles.filterBadge} />}
+              </View>
+            </Pressable>
           </View>
           <CartButton />
         </View>
-        <OutletPicker />
       </View>
 
       {isBrowsing && isLoading ? (
@@ -142,6 +154,7 @@ export function SearchScreen({ navigation, route }: Props) {
                   onPress={() => {
                     setQuery("");
                     setDepartment("");
+                    setSort("relevance");
                     setPage(1);
                   }}
                 >
@@ -169,6 +182,73 @@ export function SearchScreen({ navigation, route }: Props) {
         )}
       />
       )}
+
+      <Modal visible={filterOpen} animationType="slide" transparent onRequestClose={() => setFilterOpen(false)}>
+        <Pressable style={styles.backdrop} onPress={() => setFilterOpen(false)}>
+          <Pressable style={styles.sheet} onPress={() => {}}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Filter Pencarian</Text>
+              <Pressable onPress={() => setFilterOpen(false)} hitSlop={8}>
+                <Ionicons name="close" size={20} color={colors.onSurface} />
+              </Pressable>
+            </View>
+
+            <Text style={styles.sheetLabel}>Kategori</Text>
+            <View style={styles.sheetChipRow}>
+              {[{ name: "", label: "Semua" }, ...(departments ?? [])].map((d) => {
+                const active = department === d.name;
+                return (
+                  <Pressable
+                    key={d.name || "all"}
+                    style={[styles.chip, active && styles.chipActive]}
+                    onPress={() => {
+                      setDepartment(d.name);
+                      setPage(1);
+                    }}
+                  >
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{d.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <Text style={styles.sheetLabel}>Urutkan</Text>
+            <View style={styles.sheetChipRow}>
+              {SORT_OPTIONS.map((s) => {
+                const active = sort === s.value;
+                return (
+                  <Pressable
+                    key={s.value}
+                    style={[styles.chip, active && styles.chipActive]}
+                    onPress={() => {
+                      setSort(s.value);
+                      setPage(1);
+                    }}
+                  >
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{s.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <View style={styles.sheetActions}>
+              <Pressable
+                style={styles.resetButton}
+                onPress={() => {
+                  setDepartment("");
+                  setSort("relevance");
+                  setPage(1);
+                }}
+              >
+                <Text style={styles.resetButtonText}>Reset Filter</Text>
+              </Pressable>
+              <Pressable style={styles.applyButton} onPress={() => setFilterOpen(false)}>
+                <Text style={styles.applyButtonText}>Terapkan</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </Screen>
   );
 }
@@ -186,6 +266,15 @@ const styles = StyleSheet.create({
     height: 46,
   },
   searchInput: { flex: 1, color: colors.onSurface, fontSize: 14 },
+  filterBadge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    width: 7,
+    height: 7,
+    borderRadius: radius.full,
+    backgroundColor: colors.secondary,
+  },
   sectionTitle: { ...typography.headlineMd, fontSize: 16, color: colors.onSurface, marginBottom: spacing.sm },
   categoryGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   categoryChip: {
@@ -213,4 +302,53 @@ const styles = StyleSheet.create({
   grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   gridItem: { width: "47.5%" },
   empty: { textAlign: "center", color: colors.onSurfaceVariant, paddingVertical: spacing.xxl },
+  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
+  sheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    padding: spacing.lg,
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.sm,
+  },
+  sheetTitle: { fontSize: 16, fontFamily: fonts.display.bold, color: colors.onSurface },
+  sheetLabel: {
+    fontSize: 12,
+    fontFamily: fonts.body.semiBold,
+    color: colors.onSurfaceVariant,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  sheetChipRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
+  chip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    borderRadius: radius.full,
+    backgroundColor: colors.surfaceContainer,
+  },
+  chipActive: { backgroundColor: colors.primary },
+  chipText: { fontSize: 12, fontFamily: fonts.body.semiBold, color: colors.onSurfaceVariant },
+  chipTextActive: { color: colors.onPrimary },
+  sheetActions: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.lg },
+  resetButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: radius.full,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  resetButtonText: { color: colors.primary, fontFamily: fonts.body.bold, fontSize: 13 },
+  applyButton: {
+    flex: 1,
+    backgroundColor: colors.primary,
+    borderRadius: radius.full,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  applyButtonText: { color: colors.onPrimary, fontFamily: fonts.body.bold, fontSize: 13 },
 });

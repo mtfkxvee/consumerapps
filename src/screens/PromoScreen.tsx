@@ -6,7 +6,6 @@ import { Screen } from "../components/Screen";
 import { ProductCard } from "../components/ProductCard";
 import { ProductCardSkeleton } from "../components/ProductCardSkeleton";
 import { CartButton } from "../components/CartButton";
-import { OutletPicker } from "../components/OutletPicker";
 import { PromoBannerImage } from "../components/PromoBannerImage";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
@@ -50,7 +49,6 @@ export function PromoScreen({ navigation }: Props) {
           </View>
           <CartButton />
         </View>
-        <OutletPicker />
         {selectedOutlet && (
           <Text style={styles.outletHint}>
             Menampilkan promo yang stoknya tersedia di{" "}

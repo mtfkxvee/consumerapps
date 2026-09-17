@@ -5,7 +5,6 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Screen } from "../components/Screen";
 import { ProductCard } from "../components/ProductCard";
 import { CartButton } from "../components/CartButton";
-import { OutletPicker } from "../components/OutletPicker";
 import { ProductCardSkeleton } from "../components/ProductCardSkeleton";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
@@ -125,8 +124,6 @@ export function CatalogScreen({ navigation, route }: Props) {
           <Text style={styles.title}>Katalog Produk</Text>
           <CartButton />
         </View>
-
-        <OutletPicker />
 
         <GroupChipRow
           allLabel="Semua"
