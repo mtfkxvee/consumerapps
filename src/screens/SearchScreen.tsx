@@ -7,10 +7,12 @@ import { Screen } from "../components/Screen";
 import { ProductCard } from "../components/ProductCard";
 import { ProductCardSkeleton } from "../components/ProductCardSkeleton";
 import { CartButton } from "../components/CartButton";
+import { OutletPicker } from "../components/OutletPicker";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
 import { colors, fonts, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
 import { useCart } from "../state/CartContext";
+import { useOutlet } from "../state/OutletContext";
 import { getItemGroupChildren, getProducts } from "../lib/api/products";
 import type { SearchStackParamList } from "../navigation/types";
 import type { ProductQuery } from "../lib/types";
@@ -33,6 +35,7 @@ type Props = NativeStackScreenProps<SearchStackParamList, "Search">;
 
 export function SearchScreen({ navigation, route }: Props) {
   const { add } = useCart();
+  const { selectedOutlet } = useOutlet();
   const [query, setQuery] = useState(route.params?.q ?? "");
   const [department, setDepartment] = useState("");
   const [page, setPage] = useState(1);
@@ -47,11 +50,12 @@ export function SearchScreen({ navigation, route }: Props) {
     () => ({
       search: query || undefined,
       itemGroup: department || undefined,
+      warehouse: selectedOutlet?.warehouse ?? undefined,
       sort: "relevance",
       page,
       pageSize: PAGE_SIZE,
     }),
-    [query, department, page],
+    [query, department, selectedOutlet, page],
   );
 
   const { data, isLoading } = useQuery({
@@ -84,6 +88,7 @@ export function SearchScreen({ navigation, route }: Props) {
           </View>
           <CartButton />
         </View>
+        <OutletPicker />
       </View>
 
       {isBrowsing && isLoading ? (

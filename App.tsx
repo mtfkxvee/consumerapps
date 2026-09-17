@@ -7,6 +7,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { CartProvider } from "./src/state/CartContext";
 import { AuthProvider } from "./src/state/AuthContext";
+import { OutletProvider } from "./src/state/OutletContext";
 import { fonts } from "./src/theme/colors";
 
 SplashScreen.preventAutoHideAsync();
@@ -53,10 +54,12 @@ export default function App() {
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <CartProvider>
-            <RootNavigator />
-            <StatusBar style="dark" />
-          </CartProvider>
+          <OutletProvider>
+            <CartProvider>
+              <RootNavigator />
+              <StatusBar style="dark" />
+            </CartProvider>
+          </OutletProvider>
         </AuthProvider>
       </QueryClientProvider>
     </SafeAreaProvider>

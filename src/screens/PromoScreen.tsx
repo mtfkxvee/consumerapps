@@ -6,11 +6,13 @@ import { Screen } from "../components/Screen";
 import { ProductCard } from "../components/ProductCard";
 import { ProductCardSkeleton } from "../components/ProductCardSkeleton";
 import { CartButton } from "../components/CartButton";
+import { OutletPicker } from "../components/OutletPicker";
 import { PromoBannerImage } from "../components/PromoBannerImage";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
 import { colors, fonts, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
 import { useCart } from "../state/CartContext";
+import { useOutlet } from "../state/OutletContext";
 import { getPromoBanners, getPromoProducts } from "../lib/api/products";
 import type { PromoStackParamList } from "../navigation/types";
 
@@ -19,6 +21,8 @@ type Props = NativeStackScreenProps<PromoStackParamList, "Promo">;
 export function PromoScreen({ navigation }: Props) {
   const { add } = useCart();
   const { width } = useWindowDimensions();
+  const { selectedOutlet } = useOutlet();
+  const warehouse = selectedOutlet?.warehouse ?? undefined;
 
   const { data: banners } = useQuery({
     queryKey: ["promo-banners"],
@@ -31,8 +35,8 @@ export function PromoScreen({ navigation }: Props) {
     isError,
     refetch,
   } = useQuery({
-    queryKey: ["promo-products"],
-    queryFn: () => getPromoProducts(),
+    queryKey: ["promo-products", warehouse],
+    queryFn: () => getPromoProducts(warehouse),
     retry: 2,
   });
 
@@ -46,6 +50,15 @@ export function PromoScreen({ navigation }: Props) {
           </View>
           <CartButton />
         </View>
+        <OutletPicker />
+        {selectedOutlet && (
+          <Text style={styles.outletHint}>
+            Menampilkan promo yang stoknya tersedia di{" "}
+            <Text style={{ fontFamily: fonts.body.bold, color: colors.primary }}>
+              {selectedOutlet.name}
+            </Text>
+          </Text>
+        )}
       </View>
 
       {isLoading ? (
@@ -115,6 +128,7 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   title: { ...typography.headlineMd, color: colors.onSurface },
   subtitle: { color: colors.onSurfaceVariant, fontSize: 12, marginTop: 2 },
+  outletHint: { color: colors.onSurfaceVariant, fontSize: 11, marginTop: spacing.xs },
   list: { padding: spacing.md, paddingTop: spacing.xs, paddingBottom: TAB_BAR_SPACE },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   gridItem: { width: "47.5%" },

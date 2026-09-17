@@ -1,29 +1,72 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Screen } from "../components/Screen";
 import { ProductCard } from "../components/ProductCard";
 import { CartButton } from "../components/CartButton";
+import { OutletPicker } from "../components/OutletPicker";
 import { ProductCardSkeleton } from "../components/ProductCardSkeleton";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
 import { colors, fonts, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
 import { useCart } from "../state/CartContext";
+import { useOutlet } from "../state/OutletContext";
 import { getItemGroupChildren, getProducts } from "../lib/api/products";
 import type { CatalogStackParamList } from "../navigation/types";
-import type { ProductQuery } from "../lib/types";
+import type { ItemGroup, ProductQuery } from "../lib/types";
 
 const PAGE_SIZE = 12;
 
 type Props = NativeStackScreenProps<CatalogStackParamList, "Catalog">;
 
+// A row of level-filter chips ("Semua <level>" + each child group), used for
+// department / category / sub-category — matching the web's cascading
+// Departemen → Kategori → Sub Kategori selects, just rendered as chips
+// instead of <select>s since that reads better on a phone.
+function GroupChipRow({
+  allLabel,
+  groups,
+  selected,
+  onSelect,
+}: {
+  allLabel: string;
+  groups: ItemGroup[];
+  selected: string;
+  onSelect: (name: string) => void;
+}) {
+  return (
+    <FlatList
+      data={[{ name: "", label: allLabel, parent: null, isGroup: true }, ...groups]}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      keyExtractor={(g) => g.name || "all"}
+      contentContainerStyle={{ gap: spacing.xs, paddingVertical: 6 }}
+      renderItem={({ item }) => {
+        const active = selected === item.name;
+        return (
+          <Pressable style={[styles.chip, active && styles.chipActive]} onPress={() => onSelect(item.name)}>
+            <Text style={[styles.chipText, active && styles.chipTextActive]}>{item.label}</Text>
+          </Pressable>
+        );
+      }}
+    />
+  );
+}
+
 export function CatalogScreen({ navigation, route }: Props) {
   const { add } = useCart();
+  const { selectedOutlet } = useOutlet();
   const [department, setDepartment] = useState("");
+  const [category, setCategory] = useState("");
+  const [subCategory, setSubCategory] = useState("");
   const [sort, setSort] = useState<ProductQuery["sort"]>("relevance");
   const [page, setPage] = useState(1);
   const query = route.params?.q ?? "";
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedOutlet]);
 
   const { data: departments } = useQuery({
     queryKey: ["item-groups", "root"],
@@ -31,15 +74,39 @@ export function CatalogScreen({ navigation, route }: Props) {
     staleTime: 10 * 60_000,
   });
 
+  const { data: categories } = useQuery({
+    queryKey: ["item-groups", department],
+    queryFn: () => getItemGroupChildren(department),
+    enabled: department !== "",
+    staleTime: 10 * 60_000,
+  });
+
+  const { data: subCategories } = useQuery({
+    queryKey: ["item-groups", category],
+    queryFn: () => getItemGroupChildren(category),
+    enabled: category !== "",
+    staleTime: 10 * 60_000,
+  });
+
+  // The deepest level picked wins, and its own isGroup decides how
+  // getProducts matches it (exact leaf vs. "descendants of" branch) —
+  // same rule the web's katalog.tsx uses.
+  const selected =
+    subCategories?.find((g) => g.name === subCategory) ??
+    categories?.find((g) => g.name === category) ??
+    departments?.find((g) => g.name === department);
+
   const productQuery: ProductQuery = useMemo(
     () => ({
       search: query || undefined,
-      itemGroup: department || undefined,
+      itemGroup: selected?.name,
+      itemGroupIsGroup: selected?.isGroup,
+      warehouse: selectedOutlet?.warehouse ?? undefined,
       sort,
       page,
       pageSize: PAGE_SIZE,
     }),
-    [query, department, sort, page],
+    [query, selected, selectedOutlet, sort, page],
   );
 
   const { data, isLoading } = useQuery({
@@ -59,27 +126,44 @@ export function CatalogScreen({ navigation, route }: Props) {
           <CartButton />
         </View>
 
-        <FlatList
-          data={[{ name: "", label: "Semua" }, ...(departments ?? [])]}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(d) => d.name || "all"}
-          contentContainerStyle={{ gap: spacing.xs, paddingVertical: spacing.sm }}
-          renderItem={({ item }) => {
-            const active = department === item.name;
-            return (
-              <Pressable
-                style={[styles.chip, active && styles.chipActive]}
-                onPress={() => {
-                  setDepartment(item.name);
-                  setPage(1);
-                }}
-              >
-                <Text style={[styles.chipText, active && styles.chipTextActive]}>{item.label}</Text>
-              </Pressable>
-            );
+        <OutletPicker />
+
+        <GroupChipRow
+          allLabel="Semua"
+          groups={departments ?? []}
+          selected={department}
+          onSelect={(name) => {
+            setDepartment(name);
+            setCategory("");
+            setSubCategory("");
+            setPage(1);
           }}
         />
+
+        {department !== "" && (categories?.length ?? 0) > 0 && (
+          <GroupChipRow
+            allLabel="Semua Kategori"
+            groups={categories ?? []}
+            selected={category}
+            onSelect={(name) => {
+              setCategory(name);
+              setSubCategory("");
+              setPage(1);
+            }}
+          />
+        )}
+
+        {category !== "" && (subCategories?.length ?? 0) > 0 && (
+          <GroupChipRow
+            allLabel="Semua Sub Kategori"
+            groups={subCategories ?? []}
+            selected={subCategory}
+            onSelect={(name) => {
+              setSubCategory(name);
+              setPage(1);
+            }}
+          />
+        )}
 
         <View style={styles.sortRow}>
           {(
@@ -181,7 +265,7 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: colors.primary },
   chipText: { fontSize: 12, fontFamily: fonts.body.semiBold, color: colors.onSurfaceVariant },
   chipTextActive: { color: colors.onPrimary },
-  sortRow: { flexDirection: "row", gap: spacing.xs, marginBottom: spacing.sm },
+  sortRow: { flexDirection: "row", gap: spacing.xs, marginTop: spacing.xs, marginBottom: spacing.sm },
   sortChip: {
     paddingHorizontal: spacing.sm,
     paddingVertical: 6,
