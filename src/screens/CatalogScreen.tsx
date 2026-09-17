@@ -8,9 +8,10 @@ import { CartButton } from "../components/CartButton";
 import { ProductCardSkeleton } from "../components/ProductCardSkeleton";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
-import { colors, fonts, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
+import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { useCart } from "../state/CartContext";
 import { useOutlet } from "../state/OutletContext";
+import { useTabBarSpace } from "../hooks/useTabBarSpace";
 import { getItemGroupChildren, getProducts } from "../lib/api/products";
 import type { CatalogStackParamList } from "../navigation/types";
 import type { ItemGroup, ProductQuery } from "../lib/types";
@@ -56,6 +57,7 @@ function GroupChipRow({
 export function CatalogScreen({ navigation, route }: Props) {
   const { add } = useCart();
   const { selectedOutlet } = useOutlet();
+  const tabBarSpace = useTabBarSpace();
   const [department, setDepartment] = useState("");
   const [category, setCategory] = useState("");
   const [subCategory, setSubCategory] = useState("");
@@ -211,7 +213,7 @@ export function CatalogScreen({ navigation, route }: Props) {
         key="grid"
         numColumns={2}
         keyExtractor={(p) => p.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, { paddingBottom: tabBarSpace }]}
         columnWrapperStyle={{ gap: spacing.sm }}
         ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
         ListEmptyComponent={<Text style={styles.empty}>Tidak ada produk yang cocok.</Text>}
@@ -284,7 +286,7 @@ const styles = StyleSheet.create({
   sortChipActive: { borderColor: colors.primary, backgroundColor: colors.primaryFixed },
   sortText: { fontSize: 11, color: colors.onSurfaceVariant },
   sortTextActive: { color: colors.primary, fontFamily: fonts.body.bold },
-  list: { padding: spacing.md, paddingTop: spacing.xs, paddingBottom: TAB_BAR_SPACE },
+  list: { padding: spacing.md, paddingTop: spacing.xs },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   gridItem: { width: "47.5%" },
   empty: { textAlign: "center", color: colors.onSurfaceVariant, paddingVertical: spacing.xxl },

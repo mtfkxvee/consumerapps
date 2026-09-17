@@ -4,9 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 import { Screen } from "../components/Screen";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
-import { colors, fonts, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
+import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { formatIDR } from "../lib/format";
 import { useCart } from "../state/CartContext";
+import { useTabBarSpace } from "../hooks/useTabBarSpace";
 import { getProductById } from "../lib/api/products";
 
 type Props = {
@@ -20,6 +21,7 @@ type Props = {
 export function ProductDetailScreen({ route, navigation }: Props) {
   const { id } = route.params;
   const { add } = useCart();
+  const tabBarSpace = useTabBarSpace();
 
   const {
     data: product,
@@ -76,7 +78,7 @@ export function ProductDetailScreen({ route, navigation }: Props) {
           <Text style={styles.price}>{formatIDR(product.price)}</Text>
         </View>
       </ScrollView>
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: tabBarSpace }]}>
         <Pressable
           style={styles.addButton}
           onPress={() => {
@@ -128,7 +130,6 @@ const styles = StyleSheet.create({
   price: { ...typography.display, fontSize: 22, color: colors.primary },
   footer: {
     padding: spacing.md,
-    paddingBottom: TAB_BAR_SPACE,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     backgroundColor: colors.surface,

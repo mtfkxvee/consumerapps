@@ -20,9 +20,10 @@ import { PromoBannerImage } from "../components/PromoBannerImage";
 import { OutletPicker } from "../components/OutletPicker";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
-import { colors, fonts, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
+import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { useCart } from "../state/CartContext";
 import { useAuth } from "../state/AuthContext";
+import { useTabBarSpace } from "../hooks/useTabBarSpace";
 import {
   getItemGroupChildren,
   getPromoBanners,
@@ -53,6 +54,7 @@ export function HomeScreen({ navigation }: Props) {
   const { add } = useCart();
   const { width } = useWindowDimensions();
   const { user, isLoggedIn } = useAuth();
+  const tabBarSpace = useTabBarSpace();
   const [searchText, setSearchText] = useState("");
 
   const goToTab = (tab: string) => navigation.getParent()?.navigate(tab as never);
@@ -107,7 +109,10 @@ export function HomeScreen({ navigation }: Props) {
 
   return (
     <Screen style={{ backgroundColor: colors.primary }}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingBottom: tabBarSpace }]}
+        showsVerticalScrollIndicator={false}
+      >
         <ImageBackground
           source={HEADER_IMAGE}
           style={styles.header}
@@ -299,7 +304,7 @@ export function HomeScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingBottom: TAB_BAR_SPACE },
+  scroll: {},
   header: {
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.md,

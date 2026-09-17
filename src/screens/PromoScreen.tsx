@@ -9,9 +9,10 @@ import { CartButton } from "../components/CartButton";
 import { PromoBannerImage } from "../components/PromoBannerImage";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
-import { colors, fonts, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
+import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { useCart } from "../state/CartContext";
 import { useOutlet } from "../state/OutletContext";
+import { useTabBarSpace } from "../hooks/useTabBarSpace";
 import { getPromoBanners, getPromoProducts } from "../lib/api/products";
 import type { PromoStackParamList } from "../navigation/types";
 
@@ -22,6 +23,7 @@ export function PromoScreen({ navigation }: Props) {
   const { width } = useWindowDimensions();
   const { selectedOutlet } = useOutlet();
   const warehouse = selectedOutlet?.warehouse ?? undefined;
+  const tabBarSpace = useTabBarSpace();
 
   const { data: banners } = useQuery({
     queryKey: ["promo-banners"],
@@ -73,7 +75,7 @@ export function PromoScreen({ navigation }: Props) {
         numColumns={2}
         key="grid"
         keyExtractor={(p) => p.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, { paddingBottom: tabBarSpace }]}
         columnWrapperStyle={{ gap: spacing.sm }}
         ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
         ListHeaderComponent={
@@ -127,7 +129,7 @@ const styles = StyleSheet.create({
   title: { ...typography.headlineMd, color: colors.onSurface },
   subtitle: { color: colors.onSurfaceVariant, fontSize: 12, marginTop: 2 },
   outletHint: { color: colors.onSurfaceVariant, fontSize: 11, marginTop: spacing.xs },
-  list: { padding: spacing.md, paddingTop: spacing.xs, paddingBottom: TAB_BAR_SPACE },
+  list: { padding: spacing.md, paddingTop: spacing.xs },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   gridItem: { width: "47.5%" },
   empty: { textAlign: "center", color: colors.onSurfaceVariant, paddingVertical: spacing.xxl },

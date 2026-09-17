@@ -14,13 +14,15 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
-import { colors, fonts, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
+import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { useAuth } from "../state/AuthContext";
+import { useTabBarSpace } from "../hooks/useTabBarSpace";
 
 const HERO_IMAGE = require("../../assets/login-hero.jpg");
 
 export function LoginScreen() {
   const { login, loginGoogle } = useAuth();
+  const tabBarSpace = useTabBarSpace();
   const [usr, setUsr] = useState("");
   const [pwd, setPwd] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -62,7 +64,7 @@ export function LoginScreen() {
 
           <ScrollView
             style={styles.card}
-            contentContainerStyle={styles.cardContent}
+            contentContainerStyle={[styles.cardContent, { paddingBottom: tabBarSpace }]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
@@ -177,7 +179,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: radius.xl + 8,
     borderTopRightRadius: radius.xl + 8,
   },
-  cardContent: { padding: spacing.lg, paddingTop: spacing.sm, paddingBottom: TAB_BAR_SPACE },
+  cardContent: { padding: spacing.lg, paddingTop: spacing.sm },
   grabber: {
     alignSelf: "center",
     width: 40,

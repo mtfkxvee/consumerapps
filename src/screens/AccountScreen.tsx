@@ -5,9 +5,10 @@ import { useQuery } from "@tanstack/react-query";
 import { Screen } from "../components/Screen";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
-import { colors, fonts, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
+import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { formatIDR } from "../lib/format";
 import { useAuth } from "../state/AuthContext";
+import { useTabBarSpace } from "../hooks/useTabBarSpace";
 import { getMyLoyaltyStatus } from "../lib/api/loyalty";
 import { getMyOrders } from "../lib/api/orders";
 import { LoginScreen } from "./LoginScreen";
@@ -15,6 +16,7 @@ import { LoginScreen } from "./LoginScreen";
 export function AccountScreen() {
   const navigation = useNavigation();
   const { user, isLoading, isLoggedIn, logout } = useAuth();
+  const tabBarSpace = useTabBarSpace();
 
   const { data: loyalty } = useQuery({
     queryKey: ["loyalty-status"],
@@ -48,7 +50,7 @@ export function AccountScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: TAB_BAR_SPACE }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: tabBarSpace }}>
         <View style={styles.header}>
           <View>
             <Text style={styles.title}>Akun Saya</Text>

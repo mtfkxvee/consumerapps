@@ -9,9 +9,10 @@ import { ProductCardSkeleton } from "../components/ProductCardSkeleton";
 import { CartButton } from "../components/CartButton";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
-import { colors, fonts, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
+import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { useCart } from "../state/CartContext";
 import { useOutlet } from "../state/OutletContext";
+import { useTabBarSpace } from "../hooks/useTabBarSpace";
 import { getItemGroupChildren, getProducts } from "../lib/api/products";
 import { addSearchTerm, clearSearchHistory, getSearchHistory, removeSearchTerm } from "../lib/searchHistory";
 import type { SearchStackParamList } from "../navigation/types";
@@ -42,6 +43,7 @@ type Props = NativeStackScreenProps<SearchStackParamList, "Search">;
 export function SearchScreen({ navigation, route }: Props) {
   const { add } = useCart();
   const { selectedOutlet } = useOutlet();
+  const tabBarSpace = useTabBarSpace();
   const [query, setQuery] = useState(route.params?.q ?? "");
   const [department, setDepartment] = useState("");
   const [sort, setSort] = useState<ProductQuery["sort"]>("relevance");
@@ -156,7 +158,7 @@ export function SearchScreen({ navigation, route }: Props) {
         key="grid"
         numColumns={2}
         keyExtractor={(p) => p.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, { paddingBottom: tabBarSpace }]}
         columnWrapperStyle={{ gap: spacing.sm }}
         ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
         ListHeaderComponent={
@@ -381,7 +383,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceContainer,
   },
   historyChipText: { fontSize: 12, color: colors.onSurface, flexShrink: 1 },
-  list: { padding: spacing.md, paddingTop: spacing.xs, paddingBottom: TAB_BAR_SPACE },
+  list: { padding: spacing.md, paddingTop: spacing.xs },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   gridItem: { width: "47.5%" },
   empty: { textAlign: "center", color: colors.onSurfaceVariant, paddingVertical: spacing.xxl },
