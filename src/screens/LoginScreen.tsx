@@ -125,25 +125,16 @@ export function LoginScreen() {
 
             <Text style={styles.dividerText}>Atau masuk dengan</Text>
 
-            <View style={styles.socialRow}>
-              <Pressable
-                style={styles.socialButton}
-                onPress={handleGoogleLogin}
-                disabled={googleLoading}
-              >
-                {googleLoading ? (
-                  <ActivityIndicator size="small" color="#EA4335" />
-                ) : (
-                  <Ionicons name="logo-google" size={20} color="#EA4335" />
-                )}
-              </Pressable>
-              <Pressable style={styles.socialButton} onPress={notAvailable}>
-                <Ionicons name="logo-facebook" size={20} color="#1877F2" />
-              </Pressable>
-              <Pressable style={styles.socialButton} onPress={notAvailable}>
-                <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
-              </Pressable>
-            </View>
+            <Pressable style={styles.googleButton} onPress={handleGoogleLogin} disabled={googleLoading}>
+              {googleLoading ? (
+                <ActivityIndicator size="small" color={colors.onSurface} />
+              ) : (
+                <>
+                  <Ionicons name="logo-google" size={18} color="#EA4335" />
+                  <Text style={styles.googleButtonText}>Masuk dengan Google</Text>
+                </>
+              )}
+            </Pressable>
 
             <View style={styles.footerRow}>
               <Text style={styles.footerText}>Belum punya akun? </Text>
@@ -250,17 +241,18 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     marginBottom: spacing.md,
   },
-  socialRow: { flexDirection: "row", justifyContent: "center", gap: spacing.md },
-  socialButton: {
-    width: 46,
-    height: 46,
+  googleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    height: 50,
     borderRadius: radius.full,
     borderWidth: 1,
     borderColor: colors.border,
-    alignItems: "center",
-    justifyContent: "center",
     backgroundColor: colors.surface,
   },
+  googleButtonText: { fontSize: 14, fontFamily: fonts.body.semiBold, color: colors.onSurface },
   footerRow: {
     flexDirection: "row",
     justifyContent: "center",
