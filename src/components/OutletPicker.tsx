@@ -1,4 +1,4 @@
-import { Modal, StyleSheet, View } from "react-native";
+import { Modal, ScrollView, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "./Text";
 import { Pressable } from "./Pressable";
@@ -35,37 +35,44 @@ export function OutletPicker() {
             </View>
             <Text style={styles.sheetHint}>Cek stok &amp; promo yang tersedia di outlet pilihanmu.</Text>
 
-            <Pressable
-              style={styles.option}
-              onPress={() => {
-                setOutletCode("");
-                setOpen(false);
-              }}
+            <ScrollView
+              style={styles.optionList}
+              contentContainerStyle={{ paddingBottom: spacing.md }}
+              showsVerticalScrollIndicator={false}
+              bounces={false}
             >
-              <Text style={[styles.optionText, outletCode === "" && styles.optionTextActive]}>
-                Semua Outlet
-              </Text>
-              {outletCode === "" && <Ionicons name="checkmark" size={18} color={colors.primary} />}
-            </Pressable>
-
-            {outlets.map((o) => (
               <Pressable
-                key={o.code}
                 style={styles.option}
                 onPress={() => {
-                  setOutletCode(o.code);
+                  setOutletCode("");
                   setOpen(false);
                 }}
               >
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.optionText, outletCode === o.code && styles.optionTextActive]}>
-                    {o.name}
-                  </Text>
-                  {o.city && <Text style={styles.optionCity}>{o.city}</Text>}
-                </View>
-                {outletCode === o.code && <Ionicons name="checkmark" size={18} color={colors.primary} />}
+                <Text style={[styles.optionText, outletCode === "" && styles.optionTextActive]}>
+                  Semua Outlet
+                </Text>
+                {outletCode === "" && <Ionicons name="checkmark" size={18} color={colors.primary} />}
               </Pressable>
-            ))}
+
+              {outlets.map((o) => (
+                <Pressable
+                  key={o.code}
+                  style={styles.option}
+                  onPress={() => {
+                    setOutletCode(o.code);
+                    setOpen(false);
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.optionText, outletCode === o.code && styles.optionTextActive]}>
+                      {o.name}
+                    </Text>
+                    {o.city && <Text style={styles.optionCity}>{o.city}</Text>}
+                  </View>
+                  {outletCode === o.code && <Ionicons name="checkmark" size={18} color={colors.primary} />}
+                </Pressable>
+              ))}
+            </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>
@@ -97,6 +104,7 @@ const styles = StyleSheet.create({
   sheetHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   sheetTitle: { fontSize: 16, fontFamily: fonts.display.bold, color: colors.onSurface },
   sheetHint: { fontSize: 12, color: colors.onSurfaceVariant, marginTop: 4, marginBottom: spacing.md },
+  optionList: { flexShrink: 1 },
   option: {
     flexDirection: "row",
     alignItems: "center",
