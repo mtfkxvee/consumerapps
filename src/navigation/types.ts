@@ -44,4 +44,5 @@ export type RootStackParamList = {
   Cart: undefined;
   MemberBarcode: undefined;
   EditProfile: undefined;
+  OrderDetail: { id: string };
 };

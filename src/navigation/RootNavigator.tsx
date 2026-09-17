@@ -11,6 +11,7 @@ import { AccountScreen } from "../screens/AccountScreen";
 import { CompleteProfileScreen } from "../screens/CompleteProfileScreen";
 import { MemberBarcodeScreen } from "../screens/MemberBarcodeScreen";
 import { EditProfileScreen } from "../screens/EditProfileScreen";
+import { OrderDetailScreen } from "../screens/OrderDetailScreen";
 import { FloatingTabBar } from "./FloatingTabBar";
 import { useAuth } from "../state/AuthContext";
 import type {
@@ -108,6 +109,11 @@ export function RootNavigator() {
           name="EditProfile"
           component={EditProfileScreen}
           options={{ presentation: "modal", animation: "slide_from_right" }}
+        />
+        <RootStack.Screen
+          name="OrderDetail"
+          component={OrderDetailScreen}
+          options={{ animation: "slide_from_right" }}
         />
       </RootStack.Navigator>
     </NavigationContainer>

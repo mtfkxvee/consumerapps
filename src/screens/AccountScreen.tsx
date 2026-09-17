@@ -22,7 +22,12 @@ export function AccountScreen() {
     enabled: isLoggedIn,
   });
 
-  const { data: orders } = useQuery({
+  const {
+    data: orders,
+    isLoading: ordersLoading,
+    isError: ordersError,
+    refetch: refetchOrders,
+  } = useQuery({
     queryKey: ["my-orders"],
     queryFn: () => getMyOrders(),
     enabled: isLoggedIn,
@@ -83,26 +88,42 @@ export function AccountScreen() {
         </View>
 
         <Text style={styles.sectionTitle}>Riwayat Transaksi</Text>
-        {(orders?.length ?? 0) === 0 ? (
+        {ordersError ? (
+          <Pressable style={styles.errorBox} onPress={() => refetchOrders()}>
+            <Text style={styles.errorText}>Gagal memuat riwayat transaksi. Ketuk untuk coba lagi.</Text>
+          </Pressable>
+        ) : ordersLoading ? (
+          <View style={styles.card}>
+            <ActivityIndicator color={colors.primary} style={{ padding: spacing.lg }} />
+          </View>
+        ) : (orders?.length ?? 0) === 0 ? (
           <View style={styles.card}>
             <Text style={styles.emptyText}>Belum ada transaksi.</Text>
           </View>
         ) : (
           <View style={styles.card}>
             {orders?.map((o, idx) => (
-              <View
+              <Pressable
                 key={o.id}
                 style={[styles.orderRow, idx > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}
+                onPress={() =>
+                  (navigation.navigate as (name: string, params?: object) => void)("OrderDetail", {
+                    id: o.id,
+                  })
+                }
               >
                 <View>
                   <Text style={styles.orderId}>{o.id}</Text>
                   <Text style={styles.orderDate}>{o.date}</Text>
                 </View>
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text style={styles.orderTotal}>{formatIDR(o.total)}</Text>
-                  <Text style={styles.orderStatus}>{o.status}</Text>
+                <View style={{ alignItems: "flex-end", flexDirection: "row", gap: 6 }}>
+                  <View style={{ alignItems: "flex-end" }}>
+                    <Text style={styles.orderTotal}>{formatIDR(o.total)}</Text>
+                    <Text style={styles.orderStatus}>{o.status}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.onSurfaceVariant} />
                 </View>
-              </View>
+              </Pressable>
             ))}
           </View>
         )}
@@ -190,6 +211,13 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   emptyText: { color: colors.onSurfaceVariant, textAlign: "center", padding: spacing.lg },
+  errorBox: {
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.errorContainer,
+    alignItems: "center",
+  },
+  errorText: { color: colors.error, fontSize: 13, fontFamily: fonts.body.semiBold, textAlign: "center" },
   orderRow: {
     flexDirection: "row",
     justifyContent: "space-between",

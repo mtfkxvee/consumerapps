@@ -50,6 +50,19 @@ export type Order = {
   total: number;
 };
 
+export type OrderDetailLine = {
+  itemCode: string;
+  itemName: string;
+  qty: number;
+  rate: number;
+  amount: number;
+  uom: string;
+};
+
+export type OrderDetail = Order & {
+  items: OrderDetailLine[];
+};
+
 export type OrderLine = {
   itemCode: string;
   itemName: string;
