@@ -8,7 +8,9 @@ import { PromoScreen } from "../screens/PromoScreen";
 import { ProductDetailScreen } from "../screens/ProductDetailScreen";
 import { CartScreen } from "../screens/CartScreen";
 import { AccountScreen } from "../screens/AccountScreen";
+import { CompleteProfileScreen } from "../screens/CompleteProfileScreen";
 import { FloatingTabBar } from "./FloatingTabBar";
+import { useAuth } from "../state/AuthContext";
 import type {
   RootTabParamList,
   RootStackParamList,
@@ -78,6 +80,14 @@ function MainTabs() {
 }
 
 export function RootNavigator() {
+  const { needsProfileCompletion } = useAuth();
+
+  // A fresh Google sign-up only has an email + display name in ERPNext —
+  // block the whole app on the completion form before anything (browsing is
+  // fine to skip since checkout needs it anyway) so the customer record is
+  // usable the moment they're done.
+  if (needsProfileCompletion) return <CompleteProfileScreen />;
+
   return (
     <NavigationContainer>
       <RootStack.Navigator screenOptions={{ headerShown: false }}>

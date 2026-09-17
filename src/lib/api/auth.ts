@@ -44,7 +44,9 @@ export async function loginCustomer(
   return res;
 }
 
-export async function loginWithGoogle(): Promise<{ ok: true } | { ok: false; message: string }> {
+export async function loginWithGoogle(): Promise<
+  { ok: true; isNewSignup: boolean } | { ok: false; message: string }
+> {
   if (!isApiConfigured() || !API_URL) {
     return { ok: false, message: "Login Google butuh koneksi ke server." };
   }
@@ -67,7 +69,21 @@ export async function loginWithGoogle(): Promise<{ ok: true } | { ok: false; mes
   if (!token) return { ok: false, message: "Login Google gagal: token tidak ditemukan." };
 
   await setToken(token);
-  return { ok: true };
+  return { ok: true, isNewSignup: parsed.searchParams.get("isNew") === "1" };
+}
+
+export async function completeProfile(data: {
+  name: string;
+  mobile: string;
+  addressLine1?: string;
+  city?: string;
+}): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (!isApiConfigured()) return { ok: true };
+
+  return apiRequest<{ ok: true } | { ok: false; message: string }>(
+    "/api/mobile/auth/complete-profile",
+    { method: "POST", body: data, auth: true },
+  );
 }
 
 export async function logoutCustomer(): Promise<void> {
