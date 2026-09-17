@@ -30,6 +30,7 @@ export function MemberBarcodeScreen() {
             <Barcode
               value={code}
               format="CODE128"
+              singleBarWidth={2}
               height={110}
               maxWidth={260}
               lineColor={colors.onSurface}
