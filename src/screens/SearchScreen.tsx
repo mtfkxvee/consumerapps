@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FlatList, Modal, StyleSheet, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
@@ -13,6 +13,7 @@ import { colors, fonts, radius, spacing, typography, TAB_BAR_SPACE } from "../th
 import { useCart } from "../state/CartContext";
 import { useOutlet } from "../state/OutletContext";
 import { getItemGroupChildren, getProducts } from "../lib/api/products";
+import { addSearchTerm, clearSearchHistory, getSearchHistory, removeSearchTerm } from "../lib/searchHistory";
 import type { SearchStackParamList } from "../navigation/types";
 import type { ProductQuery } from "../lib/types";
 
@@ -46,6 +47,18 @@ export function SearchScreen({ navigation, route }: Props) {
   const [sort, setSort] = useState<ProductQuery["sort"]>("relevance");
   const [page, setPage] = useState(1);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [history, setHistory] = useState<string[]>([]);
+
+  useEffect(() => {
+    getSearchHistory().then(setHistory);
+  }, []);
+
+  const runSearch = (term: string) => {
+    setQuery(term);
+    setPage(1);
+    const trimmed = term.trim();
+    if (trimmed) addSearchTerm(trimmed).then(setHistory);
+  };
 
   const { data: departments } = useQuery({
     queryKey: ["item-groups", "root"],
@@ -87,10 +100,12 @@ export function SearchScreen({ navigation, route }: Props) {
               placeholderTextColor={colors.onSurfaceVariant}
               value={query}
               autoFocus
+              returnKeyType="search"
               onChangeText={(t) => {
                 setQuery(t);
                 setPage(1);
               }}
+              onSubmitEditing={() => runSearch(query)}
             />
             <Pressable onPress={() => setFilterOpen(true)} hitSlop={8}>
               <View>
@@ -122,6 +137,38 @@ export function SearchScreen({ navigation, route }: Props) {
         ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
         ListHeaderComponent={
           <>
+            {!isBrowsing && history.length > 0 && (
+              <View style={{ marginBottom: spacing.lg }}>
+                <View style={styles.recommendHeader}>
+                  <Text style={styles.sectionTitle}>Riwayat Pencarian</Text>
+                  <Pressable
+                    onPress={() => {
+                      clearSearchHistory();
+                      setHistory([]);
+                    }}
+                  >
+                    <Text style={styles.resetText}>Hapus Semua</Text>
+                  </Pressable>
+                </View>
+                <View style={styles.historyList}>
+                  {history.map((term) => (
+                    <Pressable key={term} style={styles.historyChip} onPress={() => runSearch(term)}>
+                      <Ionicons name="time-outline" size={13} color={colors.onSurfaceVariant} />
+                      <Text style={styles.historyChipText} numberOfLines={1}>
+                        {term}
+                      </Text>
+                      <Pressable
+                        hitSlop={8}
+                        onPress={() => removeSearchTerm(term).then(setHistory)}
+                      >
+                        <Ionicons name="close" size={14} color={colors.onSurfaceVariant} />
+                      </Pressable>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            )}
+
             {!isBrowsing && (
               <View style={{ marginBottom: spacing.lg }}>
                 <Text style={styles.sectionTitle}>Pencarian Populer</Text>
@@ -298,6 +345,18 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   resetText: { fontSize: 12, fontFamily: fonts.body.bold, color: colors.secondary },
+  historyList: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
+  historyChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    maxWidth: "100%",
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 8,
+    borderRadius: radius.full,
+    backgroundColor: colors.surfaceContainer,
+  },
+  historyChipText: { fontSize: 12, color: colors.onSurface, flexShrink: 1 },
   list: { padding: spacing.md, paddingTop: spacing.xs, paddingBottom: TAB_BAR_SPACE },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   gridItem: { width: "47.5%" },
