@@ -7,6 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Screen } from "../components/Screen";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
+import { MapPreview } from "../components/MapPreview";
 import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { formatIDR } from "../lib/format";
 import { useCart } from "../state/CartContext";
@@ -282,14 +283,31 @@ export function CheckoutScreen() {
                   </Text>
                 </Pressable>
                 {coords && (
-                  <Text style={styles.coordHint}>
-                    Titik tersimpan: {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}
-                  </Text>
+                  <>
+                    <View style={{ marginBottom: spacing.xs }}>
+                      <MapPreview lat={coords.lat} lng={coords.lng} />
+                    </View>
+                    <Text style={styles.coordHint}>
+                      Titik tersimpan: {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}
+                    </Text>
+                  </>
                 )}
               </>
             )}
           </View>
         )}
+
+        <Pressable
+          style={styles.whatsappRow}
+          onPress={() => Linking.openURL(`https://wa.me/${WHATSAPP_NUMBER}`)}
+        >
+          <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.whatsappTitle}>Butuh bantuan?</Text>
+            <Text style={styles.whatsappNumber}>Hubungi +{WHATSAPP_NUMBER}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={colors.onSurfaceVariant} />
+        </Pressable>
 
         <Text style={styles.sectionTitle}>Kode Promo</Text>
         <View style={styles.promoRow}>
@@ -449,6 +467,23 @@ const styles = StyleSheet.create({
   },
   mapButtonText: { fontSize: 13, fontFamily: fonts.body.bold, color: colors.primary },
   coordHint: { fontSize: 11, color: colors.onSurfaceVariant, textAlign: "center" },
+  whatsappRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginTop: spacing.sm,
+    marginBottom: spacing.md,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  whatsappTitle: { fontSize: 13, fontFamily: fonts.body.bold, color: colors.onSurface },
+  whatsappNumber: { fontSize: 12, color: colors.onSurfaceVariant, marginTop: 2 },
   promoRow: { flexDirection: "row", gap: spacing.sm, alignItems: "center" },
   promoButton: {
     backgroundColor: colors.primary,
