@@ -127,22 +127,6 @@ export function HomeScreen({ navigation }: Props) {
 
   return (
     <Screen style={{ backgroundColor: colors.primary }}>
-      <View style={styles.stickyBar}>
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={16} color={colors.onSurfaceVariant} />
-          <TextInput
-            style={styles.searchInput}
-            value={searchText}
-            onChangeText={setSearchText}
-            onSubmitEditing={submitSearch}
-            returnKeyType="search"
-            placeholder="Cari produk halal favorit kamu..."
-            placeholderTextColor={colors.onSurfaceVariant}
-          />
-        </View>
-        <CartButton />
-      </View>
-
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: tabBarSpace }]}
         showsVerticalScrollIndicator={false}
@@ -322,6 +306,22 @@ export function HomeScreen({ navigation }: Props) {
           </View>
         </View>
       </ScrollView>
+
+      <View style={styles.floatingBar} pointerEvents="box-none">
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={16} color={colors.onSurfaceVariant} />
+          <TextInput
+            style={styles.searchInput}
+            value={searchText}
+            onChangeText={setSearchText}
+            onSubmitEditing={submitSearch}
+            returnKeyType="search"
+            placeholder="Cari produk halal favorit kamu..."
+            placeholderTextColor={colors.onSurfaceVariant}
+          />
+        </View>
+        <CartButton />
+      </View>
     </Screen>
   );
 }
@@ -331,7 +331,10 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
+    // Clears the floating search/cart bar, which overlays this hero from
+    // outside its own layout (see floatingBar) — otherwise the brand row
+    // would render underneath it.
+    paddingTop: 62,
     paddingBottom: spacing.lg,
     borderBottomLeftRadius: radius.xl + 8,
     borderBottomRightRadius: radius.xl + 8,
@@ -373,23 +376,21 @@ const styles = StyleSheet.create({
   },
   greeting: { color: colors.primaryFixed, fontSize: 14, lineHeight: 20, marginBottom: spacing.md },
   greetingName: { color: colors.onPrimary, fontFamily: fonts.body.extraBold, fontSize: 16 },
-  // Sits outside the ScrollView entirely (a persistent header, not sticky
-  // content) so search + cart are always visible regardless of scroll
-  // position — simpler and more reliable than ScrollView's own
-  // stickyHeaderIndices, which glitched (search and cart briefly rendering
-  // on separate rows) above the dynamic-height hero image.
-  stickyBar: {
+  // Floats over the ScrollView (absolute, transparent) rather than sitting
+  // in a solid bar above it — the search pill and cart button read fine on
+  // their own against the hero photo or the light body content once
+  // scrolled past it, and this way there's no separate opaque toolbar
+  // visually competing with the hero. Stays put regardless of scroll
+  // position since it's outside the ScrollView's own layout entirely.
+  floatingBar: {
+    position: "absolute",
+    top: spacing.sm,
+    left: spacing.md,
+    right: spacing.md,
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    backgroundColor: colors.background,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
     zIndex: 1,
-    shadowColor: colors.black,
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
     elevation: 3,
   },
   searchBar: {
