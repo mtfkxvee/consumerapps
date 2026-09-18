@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  Animated,
   FlatList,
   ImageBackground,
-  Linking,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   TextInput,
   View,
@@ -32,7 +31,6 @@ import {
   getProducts,
 } from "../lib/api/products";
 import { getMyLoyaltyStatus } from "../lib/api/loyalty";
-import { WHATSAPP_NUMBER } from "../lib/mock-data";
 import type { HomeStackParamList } from "../navigation/types";
 
 const HEADER_IMAGE = require("../../assets/login-hero.jpg");
@@ -57,6 +55,32 @@ export function HomeScreen({ navigation }: Props) {
   const { user, isLoggedIn } = useAuth();
   const tabBarSpace = useTabBarSpace();
   const [searchText, setSearchText] = useState("");
+
+  // The floating search/cart/notification bar starts transparent over the
+  // hero photo, then fades to a solid pill once you scroll past it — track
+  // scroll position for the animated background and a discrete threshold
+  // for icon/text colors (which Animated can't tween on a plain TextInput).
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const id = scrollY.addListener(({ value }) => {
+      const next = value > 40;
+      setScrolled((prev) => (prev === next ? prev : next));
+    });
+    return () => scrollY.removeListener(id);
+  }, [scrollY]);
+  const searchBarAnimatedStyle = {
+    backgroundColor: scrollY.interpolate({
+      inputRange: [0, 60],
+      outputRange: ["rgba(255,255,255,0)", colors.surface],
+      extrapolate: "clamp" as const,
+    }),
+    shadowOpacity: scrollY.interpolate({
+      inputRange: [0, 60],
+      outputRange: [0, 0.08],
+      extrapolate: "clamp" as const,
+    }),
+  };
 
   const goToTab = (tab: string) => navigation.getParent()?.navigate(tab as never);
 
@@ -143,9 +167,13 @@ export function HomeScreen({ navigation }: Props) {
 
   return (
     <Screen style={{ backgroundColor: colors.primary }}>
-      <ScrollView
+      <Animated.ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: tabBarSpace }]}
         showsVerticalScrollIndicator={false}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+          useNativeDriver: false,
+        })}
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.onPrimary} />
         }
@@ -156,23 +184,7 @@ export function HomeScreen({ navigation }: Props) {
           imageStyle={styles.headerImage}
         >
           <View style={styles.headerOverlay} />
-          <View style={styles.headerTopRow}>
-            <View>
-              <Text style={styles.brand}>X-SHA</Text>
-            </View>
-            <View style={styles.headerIcons}>
-              <Pressable style={styles.headerIconButton} onPress={() => goToTab("AccountTab")}>
-                <Ionicons name="notifications-outline" size={18} color={colors.onPrimary} />
-                <View style={styles.headerIconBadge} />
-              </Pressable>
-              <Pressable
-                style={styles.headerIconButton}
-                onPress={() => Linking.openURL(`https://wa.me/${WHATSAPP_NUMBER}`)}
-              >
-                <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.onPrimary} />
-              </Pressable>
-            </View>
-          </View>
+          <Text style={[styles.brand, { marginBottom: spacing.md }]}>X-SHA</Text>
 
           <Text style={styles.greeting}>
             Selamat datang,{"\n"}
@@ -328,22 +340,33 @@ export function HomeScreen({ navigation }: Props) {
             </View>
           </View>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
       <View style={styles.floatingBar} pointerEvents="box-none">
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={16} color={colors.onSurfaceVariant} />
+        <Animated.View style={[styles.searchBar, searchBarAnimatedStyle]}>
+          <Ionicons name="search" size={16} color={scrolled ? colors.onSurfaceVariant : colors.onPrimary} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: scrolled ? colors.onSurface : colors.onPrimary }]}
             value={searchText}
             onChangeText={setSearchText}
             onSubmitEditing={submitSearch}
             returnKeyType="search"
             placeholder="Cari produk halal favorit kamu..."
-            placeholderTextColor={colors.onSurfaceVariant}
+            placeholderTextColor={scrolled ? colors.onSurfaceVariant : colors.primaryFixed}
           />
-        </View>
-        <CartButton />
+        </Animated.View>
+        <Pressable
+          style={[styles.notifButton, scrolled ? styles.notifButtonDark : styles.notifButtonLight]}
+          onPress={() => goToTab("AccountTab")}
+        >
+          <Ionicons
+            name="notifications-outline"
+            size={18}
+            color={scrolled ? colors.onSurface : colors.onPrimary}
+          />
+          <View style={styles.notifBadge} />
+        </Pressable>
+        <CartButton tone={scrolled ? "dark" : "light"} />
       </View>
     </Screen>
   );
@@ -372,23 +395,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     opacity: 0.55,
   },
-  headerTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: spacing.md,
-  },
   brand: { color: colors.onPrimary, fontSize: 20, fontFamily: fonts.display.extraBold, letterSpacing: 0.5 },
-  headerIcons: { flexDirection: "row", gap: spacing.sm },
-  headerIconButton: {
+  notifButton: {
     width: 36,
     height: 36,
     borderRadius: radius.full,
-    backgroundColor: "rgba(255,255,255,0.15)",
     alignItems: "center",
     justifyContent: "center",
   },
-  headerIconBadge: {
+  notifButtonLight: { backgroundColor: "rgba(255,255,255,0.15)" },
+  notifButtonDark: { backgroundColor: colors.surfaceContainerLow },
+  notifBadge: {
     position: "absolute",
     top: 7,
     right: 7,
