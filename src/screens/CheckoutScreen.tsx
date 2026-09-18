@@ -38,6 +38,7 @@ export function CheckoutScreen() {
     coords: { lat: number; lng: number } | null;
   } | null>(null);
   const [loadingAddress, setLoadingAddress] = useState(false);
+  const [contactNumber, setContactNumber] = useState(user?.customer?.mobile ?? "");
   const [promoCode, setPromoCode] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("automatic");
   const [submitting, setSubmitting] = useState(false);
@@ -97,16 +98,21 @@ export function CheckoutScreen() {
 
   const handleSubmit = async () => {
     if (selectedItems.length === 0) return;
+    if (!contactNumber.trim()) {
+      Alert.alert("Kontak belum diisi", "Isi nomor WhatsApp yang bisa dihubungi tim kami.");
+      return;
+    }
     if (fulfillment === "delivery" && (!addressLine1.trim() || !city.trim())) {
       Alert.alert("Alamat belum lengkap", "Isi alamat dan kota tujuan pengiriman terlebih dahulu.");
       return;
     }
 
     const mapsLink = coords ? `\nTitik Lokasi: https://maps.google.com/?q=${coords.lat},${coords.lng}` : "";
-    const note =
+    const fulfillmentNote =
       fulfillment === "pickup"
         ? "Metode: Ambil di outlet (Pick Up)"
         : `Metode: Diantar\nAlamat: ${addressLine1}, ${city}${mapsLink}`;
+    const note = `${fulfillmentNote}\nKontak: ${contactNumber.trim()}`;
 
     setSubmitting(true);
 
@@ -297,17 +303,21 @@ export function CheckoutScreen() {
           </View>
         )}
 
-        <Pressable
-          style={styles.whatsappRow}
-          onPress={() => Linking.openURL(`https://wa.me/${WHATSAPP_NUMBER}`)}
-        >
-          <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.whatsappTitle}>Butuh bantuan?</Text>
-            <Text style={styles.whatsappNumber}>Hubungi +{WHATSAPP_NUMBER}</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={16} color={colors.onSurfaceVariant} />
-        </Pressable>
+        <Text style={styles.sectionTitle}>Kontak yang Bisa Dihubungi</Text>
+        <View style={styles.inputWrap}>
+          <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
+          <TextInput
+            style={styles.input}
+            value={contactNumber}
+            onChangeText={setContactNumber}
+            placeholder="Nomor WhatsApp Anda"
+            placeholderTextColor={colors.onSurfaceVariant}
+            keyboardType="phone-pad"
+          />
+        </View>
+        <Text style={styles.contactHint}>
+          Nomor ini yang akan dihubungi tim kami saat mengantarkan/menyiapkan pesanan Anda.
+        </Text>
 
         <Text style={styles.sectionTitle}>Kode Promo</Text>
         <View style={styles.promoRow}>
@@ -467,23 +477,12 @@ const styles = StyleSheet.create({
   },
   mapButtonText: { fontSize: 13, fontFamily: fonts.body.bold, color: colors.primary },
   coordHint: { fontSize: 11, color: colors.onSurfaceVariant, textAlign: "center" },
-  whatsappRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    marginTop: spacing.sm,
-    marginBottom: spacing.md,
-    shadowColor: colors.primary,
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
+  contactHint: {
+    fontSize: 11,
+    color: colors.onSurfaceVariant,
+    marginTop: -spacing.xs,
+    marginBottom: spacing.sm,
   },
-  whatsappTitle: { fontSize: 13, fontFamily: fonts.body.bold, color: colors.onSurface },
-  whatsappNumber: { fontSize: 12, color: colors.onSurfaceVariant, marginTop: 2 },
   promoRow: { flexDirection: "row", gap: spacing.sm, alignItems: "center" },
   promoButton: {
     backgroundColor: colors.primary,
