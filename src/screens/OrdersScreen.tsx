@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import PagerView from "react-native-pager-view";
 import * as WebBrowser from "expo-web-browser";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
@@ -47,6 +48,7 @@ type Row = {
 
 export function OrdersScreen() {
   const navigation = useNavigation();
+  const pagerRef = useRef<PagerView>(null);
   const [tab, setTab] = useState<Tab>("unpaid");
   const [resumingId, setResumingId] = useState<string | null>(null);
 
@@ -65,7 +67,6 @@ export function OrdersScreen() {
     refetch: refetchInvoices,
   } = useQuery({ queryKey: ["my-orders"], queryFn: () => getMyOrders() });
 
-  const isLoading = pesananLoading || (tab === "completed" && invoicesLoading);
   const isFetching = pesananFetching || invoicesFetching;
 
   const refetch = () => {
@@ -73,28 +74,28 @@ export function OrdersScreen() {
     refetchInvoices();
   };
 
-  const rows = useMemo((): Row[] => {
+  const rowsForTab = (tabKey: Tab): Row[] => {
     const fromPesanan = (pesanan ?? [])
-      .filter((p) => p.stage === tab)
+      .filter((p) => p.stage === tabKey)
       .map(
         (p): Row => ({
           id: p.id,
           date: p.date,
           total: p.total,
           statusText:
-            tab === "shipping" && p.deliveryStatus
+            tabKey === "shipping" && p.deliveryStatus
               ? (DELIVERY_STATUS_LABELS[p.deliveryStatus] ?? p.deliveryStatus)
-              : tab === "unpaid"
+              : tabKey === "unpaid"
                 ? "Menunggu Pembayaran"
-                : tab === "preparing"
+                : tabKey === "preparing"
                   ? "Sedang Disiapkan"
                   : "Diterima",
-          resumable: tab === "unpaid",
+          resumable: tabKey === "unpaid",
           source: "pesanan",
         }),
       );
 
-    if (tab !== "completed") return fromPesanan;
+    if (tabKey !== "completed") return fromPesanan;
 
     const fromInvoices = (invoices ?? []).map(
       (o): Row => ({
@@ -108,7 +109,18 @@ export function OrdersScreen() {
     );
 
     return [...fromPesanan, ...fromInvoices].sort((a, b) => (a.date < b.date ? 1 : -1));
-  }, [pesanan, invoices, tab]);
+  };
+
+  const rowsByTab = useMemo(
+    () => Object.fromEntries(TABS.map((t) => [t.key, rowsForTab(t.key)])) as Record<Tab, Row[]>,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pesanan, invoices],
+  );
+
+  const goToTab = (index: number) => {
+    setTab(TABS[index].key);
+    pagerRef.current?.setPage(index);
+  };
 
   const handleResume = async (id: string) => {
     setResumingId(id);
@@ -135,13 +147,13 @@ export function OrdersScreen() {
         style={styles.tabScroll}
         contentContainerStyle={styles.tabRow}
       >
-        {TABS.map((item) => {
+        {TABS.map((item, index) => {
           const active = tab === item.key;
           return (
             <Pressable
               key={item.key}
               style={[styles.tab, active && styles.tabActive]}
-              onPress={() => setTab(item.key)}
+              onPress={() => goToTab(index)}
             >
               <Text style={[styles.tabText, active && styles.tabTextActive]}>{item.label}</Text>
             </Pressable>
@@ -155,53 +167,71 @@ export function OrdersScreen() {
             <Text style={styles.errorText}>Gagal memuat pesanan. Ketuk untuk coba lagi.</Text>
           </Pressable>
         </View>
-      ) : isLoading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={colors.primary} />
-        </View>
       ) : (
-        <FlatList
-          data={rows}
-          keyExtractor={(r) => r.id}
-          contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={refetch} />}
-          ListEmptyComponent={<Text style={styles.empty}>Tidak ada pesanan di tahap ini.</Text>}
-          renderItem={({ item }) => (
-            <Pressable
-              style={styles.card}
-              onPress={() =>
-                (navigation.navigate as (name: string, params?: object) => void)("OrderDetail", {
-                  id: item.id,
-                  source: item.source,
-                })
-              }
-            >
-              <View style={styles.cardTopRow}>
-                <Text style={styles.orderId}>{item.id}</Text>
-                <View style={styles.statusBadge}>
-                  <Text style={styles.statusText}>{item.statusText}</Text>
-                </View>
-              </View>
-              <Text style={styles.orderDate}>{item.date}</Text>
-              <View style={styles.cardBottomRow}>
-                <Text style={styles.orderTotal}>{formatIDR(item.total)}</Text>
-                {item.resumable && (
-                  <Pressable
-                    style={styles.resumeButton}
-                    onPress={() => handleResume(item.id)}
-                    disabled={resumingId === item.id}
-                  >
-                    {resumingId === item.id ? (
-                      <ActivityIndicator size="small" color={colors.onPrimary} />
-                    ) : (
-                      <Text style={styles.resumeButtonText}>Lanjutkan Pembayaran</Text>
+        <PagerView
+          ref={pagerRef}
+          style={{ flex: 1 }}
+          initialPage={0}
+          onPageSelected={(e) => setTab(TABS[e.nativeEvent.position].key)}
+        >
+          {TABS.map((item) => {
+            const isLoading = pesananLoading || (item.key === "completed" && invoicesLoading);
+            return (
+              <View key={item.key} style={{ flex: 1 }}>
+                {isLoading ? (
+                  <View style={styles.center}>
+                    <ActivityIndicator color={colors.primary} />
+                  </View>
+                ) : (
+                  <FlatList
+                    data={rowsByTab[item.key]}
+                    keyExtractor={(r) => r.id}
+                    contentContainerStyle={styles.list}
+                    refreshControl={
+                      <RefreshControl refreshing={isFetching && !isLoading} onRefresh={refetch} />
+                    }
+                    ListEmptyComponent={<Text style={styles.empty}>Tidak ada pesanan di tahap ini.</Text>}
+                    renderItem={({ item: row }) => (
+                      <Pressable
+                        style={styles.card}
+                        onPress={() =>
+                          (navigation.navigate as (name: string, params?: object) => void)(
+                            "OrderDetail",
+                            { id: row.id, source: row.source },
+                          )
+                        }
+                      >
+                        <View style={styles.cardTopRow}>
+                          <Text style={styles.orderId}>{row.id}</Text>
+                          <View style={styles.statusBadge}>
+                            <Text style={styles.statusText}>{row.statusText}</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.orderDate}>{row.date}</Text>
+                        <View style={styles.cardBottomRow}>
+                          <Text style={styles.orderTotal}>{formatIDR(row.total)}</Text>
+                          {row.resumable && (
+                            <Pressable
+                              style={styles.resumeButton}
+                              onPress={() => handleResume(row.id)}
+                              disabled={resumingId === row.id}
+                            >
+                              {resumingId === row.id ? (
+                                <ActivityIndicator size="small" color={colors.onPrimary} />
+                              ) : (
+                                <Text style={styles.resumeButtonText}>Lanjutkan Pembayaran</Text>
+                              )}
+                            </Pressable>
+                          )}
+                        </View>
+                      </Pressable>
                     )}
-                  </Pressable>
+                  />
                 )}
               </View>
-            </Pressable>
-          )}
-        />
+            );
+          })}
+        </PagerView>
       )}
     </Screen>
   );
