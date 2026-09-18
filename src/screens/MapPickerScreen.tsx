@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { WebView } from "react-native-webview";
 import * as Location from "expo-location";
@@ -72,20 +72,58 @@ export function MapPickerScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { initialLat, initialLng, onSelect } = route.params as RouteParams;
-
-  const startLat = initialLat ?? DEFAULT_LAT;
-  const startLng = initialLng ?? DEFAULT_LNG;
+  const hasSavedPin = initialLat != null && initialLng != null;
 
   const webviewRef = useRef<WebView>(null);
-  const [center, setCenter] = useState({ lat: startLat, lng: startLng });
+  // Null while we're still figuring out where to start the map — GPS
+  // permission is requested immediately on open (no extra tap needed) so
+  // the pin lands on the customer's actual location right away, unless
+  // they already have a saved pin, which takes priority.
+  const [resolvedCenter, setResolvedCenter] = useState<{ lat: number; lng: number } | null>(
+    hasSavedPin ? { lat: initialLat as number, lng: initialLng as number } : null,
+  );
+  const [center, setCenter] = useState(resolvedCenter ?? { lat: DEFAULT_LAT, lng: DEFAULT_LNG });
   const [locating, setLocating] = useState(false);
   const [mapReady, setMapReady] = useState(false);
+  const [permissionDenied, setPermissionDenied] = useState(false);
+
+  useEffect(() => {
+    if (hasSavedPin) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          if (!cancelled) {
+            setPermissionDenied(true);
+            setResolvedCenter({ lat: DEFAULT_LAT, lng: DEFAULT_LNG });
+          }
+          return;
+        }
+        const pos = await Location.getCurrentPositionAsync({});
+        if (cancelled) return;
+        const point = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setResolvedCenter(point);
+        setCenter(point);
+      } catch {
+        if (!cancelled) setResolvedCenter({ lat: DEFAULT_LAT, lng: DEFAULT_LNG });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const useMyLocation = async () => {
     setLocating(true);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") return;
+      if (status !== "granted") {
+        setPermissionDenied(true);
+        return;
+      }
+      setPermissionDenied(false);
       const pos = await Location.getCurrentPositionAsync({});
       const { latitude, longitude } = pos.coords;
       setCenter({ lat: latitude, lng: longitude });
@@ -101,6 +139,15 @@ export function MapPickerScreen() {
     navigation.goBack();
   };
 
+  if (!resolvedCenter) {
+    return (
+      <View style={[styles.loadingOverlay, { position: "relative" }]}>
+        <ActivityIndicator color={colors.primary} />
+        <Text style={styles.loadingText}>Mengambil lokasi Anda...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={styles.header}>
@@ -111,6 +158,15 @@ export function MapPickerScreen() {
         <View style={{ width: 24 }} />
       </View>
 
+      {permissionDenied && (
+        <View style={styles.permissionBanner}>
+          <Text style={styles.permissionBannerText}>
+            Izin lokasi ditolak — geser peta untuk mencari alamat secara manual, atau ketuk tombol
+            navigasi untuk coba lagi.
+          </Text>
+        </View>
+      )}
+
       <View style={{ flex: 1 }}>
         {!mapReady && (
           <View style={styles.loadingOverlay}>
@@ -119,7 +175,7 @@ export function MapPickerScreen() {
         )}
         <WebView
           ref={webviewRef}
-          source={{ html: buildHtml(startLat, startLng) }}
+          source={{ html: buildHtml(resolvedCenter.lat, resolvedCenter.lng) }}
           style={{ flex: 1 }}
           onLoadEnd={() => setMapReady(true)}
           onMessage={(event) => {
@@ -174,7 +230,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.background,
+    gap: spacing.sm,
   },
+  loadingText: { fontSize: 13, color: colors.onSurfaceVariant },
+  permissionBanner: {
+    backgroundColor: colors.errorContainer,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  permissionBannerText: { fontSize: 11, color: colors.error, textAlign: "center" },
   pinWrap: {
     position: "absolute",
     top: "50%",
