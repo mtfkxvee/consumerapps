@@ -195,13 +195,6 @@ export function LoginScreen() {
                   </>
                 )}
               </Pressable>
-
-              <View style={styles.footerRow}>
-                <Text style={styles.footerText}>Belum punya akun? </Text>
-                <Pressable onPress={notAvailable}>
-                  <Text style={styles.linkText}>Daftar</Text>
-                </Pressable>
-              </View>
             </ScrollView>
           </Animated.View>
         </View>
@@ -315,10 +308,4 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   googleButtonText: { fontSize: 14, fontFamily: fonts.body.semiBold, color: colors.onSurface },
-  footerRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: spacing.xl,
-  },
-  footerText: { fontSize: 13, color: colors.onSurfaceVariant },
 });
