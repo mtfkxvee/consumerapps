@@ -68,6 +68,12 @@ export function AccountScreen() {
           </View>
         </Pressable>
 
+        <View style={styles.pointsCard}>
+          <Ionicons name="star" size={28} color={colors.primary} />
+          <Text style={styles.pointsLabel}>Saldo Poin Anda</Text>
+          <Text style={styles.pointsValue}>{loyalty?.points ?? 0}</Text>
+        </View>
+
         <View style={styles.menuCard}>
           <Pressable style={styles.menuRow} onPress={() => navigation.navigate("Orders" as never)}>
             <Ionicons name="receipt-outline" size={18} color={colors.primary} />
@@ -82,12 +88,6 @@ export function AccountScreen() {
             <Text style={styles.menuText}>Pengaturan</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.onSurfaceVariant} />
           </Pressable>
-        </View>
-
-        <View style={styles.pointsCard}>
-          <Ionicons name="star" size={28} color={colors.primary} />
-          <Text style={styles.pointsLabel}>Saldo Poin Anda</Text>
-          <Text style={styles.pointsValue}>{loyalty?.points ?? 0}</Text>
         </View>
       </ScrollView>
     </Screen>
