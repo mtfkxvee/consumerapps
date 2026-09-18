@@ -42,6 +42,15 @@ export async function getMyPesanan(): Promise<Pesanan[]> {
   return apiRequest<Pesanan[]>("/api/mobile/quotations", { auth: true });
 }
 
+export async function getQuotationDetail(id: string): Promise<OrderDetail | null> {
+  if (!isApiConfigured()) return null;
+  try {
+    return await apiRequest<OrderDetail>(`/api/mobile/quotations/${encodeURIComponent(id)}`, { auth: true });
+  } catch {
+    return null;
+  }
+}
+
 export async function resumePayment(
   quotationId: string,
 ): Promise<{ ok: true; paymentUrl: string } | { ok: false; message: string }> {

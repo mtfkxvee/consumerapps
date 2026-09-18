@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from "react-native";
+import { ActivityIndicator, FlatList, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
@@ -34,17 +34,15 @@ const DELIVERY_STATUS_LABELS: Record<string, string> = {
 // One row shape for every tab — "completed" merges the app's own paid-and-
 // delivered orders (Pesanan) with the existing in-store Sales Invoice
 // history (Order), which is why this exists instead of just using Pesanan
-// directly.
+// directly. Every row is tappable; `source` tells OrderDetailScreen which
+// endpoint to resolve the item breakdown from (Quotation vs Sales Invoice).
 type Row = {
   id: string;
   date: string;
   total: number;
   statusText: string;
   resumable: boolean;
-  // Only Sales Invoice rows have item-level detail (OrderDetailScreen) —
-  // a "completed" Pesanan row is still a Quotation under the hood, which
-  // that screen doesn't resolve.
-  hasDetail: boolean;
+  source: "pesanan" | "invoice";
 };
 
 export function OrdersScreen() {
@@ -92,7 +90,7 @@ export function OrdersScreen() {
                   ? "Sedang Disiapkan"
                   : "Diterima",
           resumable: tab === "unpaid",
-          hasDetail: false,
+          source: "pesanan",
         }),
       );
 
@@ -105,7 +103,7 @@ export function OrdersScreen() {
         total: o.total,
         statusText: o.status,
         resumable: false,
-        hasDetail: true,
+        source: "invoice",
       }),
     );
 
@@ -131,21 +129,25 @@ export function OrdersScreen() {
         <View style={{ width: 22 }} />
       </View>
 
-      <FlatList
+      <ScrollView
         horizontal
-        data={TABS}
-        keyExtractor={(t) => t.key}
         showsHorizontalScrollIndicator={false}
+        style={styles.tabScroll}
         contentContainerStyle={styles.tabRow}
-        renderItem={({ item }) => {
+      >
+        {TABS.map((item) => {
           const active = tab === item.key;
           return (
-            <Pressable style={[styles.tab, active && styles.tabActive]} onPress={() => setTab(item.key)}>
+            <Pressable
+              key={item.key}
+              style={[styles.tab, active && styles.tabActive]}
+              onPress={() => setTab(item.key)}
+            >
               <Text style={[styles.tabText, active && styles.tabTextActive]}>{item.label}</Text>
             </Pressable>
           );
-        }}
-      />
+        })}
+      </ScrollView>
 
       {pesananError ? (
         <View style={styles.center}>
@@ -167,10 +169,10 @@ export function OrdersScreen() {
           renderItem={({ item }) => (
             <Pressable
               style={styles.card}
-              disabled={!item.hasDetail}
               onPress={() =>
                 (navigation.navigate as (name: string, params?: object) => void)("OrderDetail", {
                   id: item.id,
+                  source: item.source,
                 })
               }
             >
@@ -215,10 +217,17 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xs,
   },
   headerTitle: { ...typography.headlineMd, color: colors.onSurface },
-  tabRow: { gap: spacing.xs, paddingHorizontal: spacing.md, paddingBottom: spacing.sm },
-  tab: {
+  tabScroll: { flexGrow: 0, flexShrink: 0 },
+  tabRow: {
+    gap: spacing.xs,
     paddingHorizontal: spacing.md,
-    paddingVertical: 8,
+    paddingBottom: spacing.sm,
+    alignItems: "center",
+  },
+  tab: {
+    height: 32,
+    justifyContent: "center",
+    paddingHorizontal: spacing.md,
     borderRadius: radius.full,
     backgroundColor: colors.surfaceContainer,
   },

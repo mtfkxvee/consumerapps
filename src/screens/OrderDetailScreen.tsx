@@ -7,12 +7,12 @@ import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
 import { colors, fonts, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
 import { formatIDR } from "../lib/format";
-import { getOrderDetail } from "../lib/api/orders";
+import { getOrderDetail, getQuotationDetail } from "../lib/api/orders";
 
 export function OrderDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { id } = route.params as { id: string };
+  const { id, source } = route.params as { id: string; source?: "pesanan" | "invoice" };
 
   const {
     data: order,
@@ -20,8 +20,8 @@ export function OrderDetailScreen() {
     isError,
     refetch,
   } = useQuery({
-    queryKey: ["order-detail", id],
-    queryFn: () => getOrderDetail(id),
+    queryKey: ["order-detail", id, source],
+    queryFn: () => (source === "pesanan" ? getQuotationDetail(id) : getOrderDetail(id)),
   });
 
   return (
