@@ -60,6 +60,16 @@ export function HomeScreen({ navigation }: Props) {
 
   const goToTab = (tab: string) => navigation.getParent()?.navigate(tab as never);
 
+  // The tab navigator's whole-screen swipe-to-change-tab gesture fights the
+  // banner carousel's own horizontal scroll — a drag meant to scroll the
+  // banner kept getting captured as a tab switch instead. Turning swipe off
+  // for the duration of a touch on the carousel (back on at touch end) lets
+  // the carousel win that gesture without losing swipe elsewhere.
+  const setTabSwipe = (enabled: boolean) =>
+    (navigation.getParent()?.setOptions as ((opts: { swipeEnabled: boolean }) => void) | undefined)?.({
+      swipeEnabled: enabled,
+    });
+
   const openBanner = (b: { id: string; title: string }) =>
     (navigation.getParent()?.navigate as (name: string, params?: object) => void)("PromoTab", {
       screen: "Promo",
@@ -229,6 +239,9 @@ export function HomeScreen({ navigation }: Props) {
                 showsHorizontalScrollIndicator={false}
                 keyExtractor={(b) => b.id}
                 contentContainerStyle={{ gap: spacing.sm, paddingHorizontal: spacing.md }}
+                onTouchStart={() => setTabSwipe(false)}
+                onTouchEnd={() => setTabSwipe(true)}
+                onTouchCancel={() => setTabSwipe(true)}
                 renderItem={({ item }) => (
                   <Pressable onPress={() => openBanner(item)}>
                     <PromoBannerImage uri={item.image} width={width * 0.48} />

@@ -78,9 +78,11 @@ function MainTabs() {
       // Whole-screen swipe-to-change-tab conflicted with horizontal content
       // inside a tab (the promo banner carousel especially) — a swipe meant
       // to scroll the banner kept getting captured as a tab switch instead,
-      // landing on Akun since Promo sits right before it. The FloatingTabBar
-      // already covers switching tabs, so the gesture is redundant.
-      screenOptions={{ swipeEnabled: false, animationEnabled: true }}
+      // landing on Akun since Promo sits right before it. Kept swipe-to-
+      // switch enabled (still handy for the rest of the screen) — the
+      // banner carousels themselves toggle this off for the duration of a
+      // touch on them (see HomeScreen/PromoScreen) so they win that gesture.
+      screenOptions={{ swipeEnabled: true, animationEnabled: true }}
     >
       <Tab.Screen name="HomeTab" component={HomeStackNavigator} options={{ title: "Beranda" }} />
       <Tab.Screen name="CatalogTab" component={CatalogStackNavigator} options={{ title: "Katalog" }} />

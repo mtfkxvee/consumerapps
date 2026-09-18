@@ -78,6 +78,15 @@ export function PromoScreen({ navigation, route }: Props) {
   const openBanner = (b: { id: string; title: string }) =>
     navigation.push("Promo", { ruleId: b.id, title: b.title });
 
+  // See HomeScreen's setTabSwipe for why — the carousel needs the tab
+  // navigator's swipe-to-change-tab gesture off for the duration of a touch
+  // on it, so a drag on the banner scrolls the banner instead of switching
+  // to the Akun tab next to Promo.
+  const setTabSwipe = (enabled: boolean) =>
+    (navigation.getParent()?.setOptions as ((opts: { swipeEnabled: boolean }) => void) | undefined)?.({
+      swipeEnabled: enabled,
+    });
+
   return (
     <Screen>
       <View style={styles.header}>
@@ -135,6 +144,9 @@ export function PromoScreen({ navigation, route }: Props) {
               showsHorizontalScrollIndicator={false}
               keyExtractor={(b) => b.id}
               contentContainerStyle={{ gap: spacing.sm, paddingBottom: spacing.lg }}
+              onTouchStart={() => setTabSwipe(false)}
+              onTouchEnd={() => setTabSwipe(true)}
+              onTouchCancel={() => setTabSwipe(true)}
               renderItem={({ item }) => (
                 <Pressable onPress={() => openBanner(item)}>
                   <PromoBannerImage uri={item.image} width={width * 0.52} />
