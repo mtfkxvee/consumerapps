@@ -5,6 +5,11 @@ export type Product = {
   price: number;
   image: string;
   alt: string;
+  // Present only when an active promo discounts this item — mirrors
+  // PromoProduct's fields so the catalog/search grid can show the same
+  // strike-through/badge as the Promo tab.
+  oldPrice?: number;
+  discountPercent?: number;
 };
 
 export type PromoProduct = Product & { discountPercent: number; oldPrice: number };
@@ -98,6 +103,11 @@ export type PromoBanner = {
   id: string;
   title: string;
   image: string;
+};
+
+export type PromoRuleProducts = {
+  rule: { id: string; title: string };
+  products: PromoProduct[];
 };
 
 export type ProductQuery = {

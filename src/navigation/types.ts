@@ -17,7 +17,7 @@ export type SearchStackParamList = {
 };
 
 export type PromoStackParamList = {
-  Promo: undefined;
+  Promo: { ruleId?: string; title?: string } | undefined;
   ProductDetail: { id: string };
 };
 

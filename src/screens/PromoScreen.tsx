@@ -1,6 +1,7 @@
 import { useWindowDimensions } from "react-native";
 import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
+import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Screen } from "../components/Screen";
 import { ProductCard } from "../components/ProductCard";
@@ -13,47 +14,88 @@ import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { useCart } from "../state/CartContext";
 import { useOutlet } from "../state/OutletContext";
 import { useTabBarSpace } from "../hooks/useTabBarSpace";
-import { getPromoBanners, getPromoProducts } from "../lib/api/products";
+import { getPromoBanners, getPromoProducts, getPromoRuleProducts } from "../lib/api/products";
 import type { PromoStackParamList } from "../navigation/types";
 
 type Props = NativeStackScreenProps<PromoStackParamList, "Promo">;
 
-export function PromoScreen({ navigation }: Props) {
+export function PromoScreen({ navigation, route }: Props) {
   const { add } = useCart();
   const { width } = useWindowDimensions();
   const { selectedOutlet } = useOutlet();
   const warehouse = selectedOutlet?.warehouse ?? undefined;
   const tabBarSpace = useTabBarSpace();
 
+  const ruleId = route.params?.ruleId;
+  const ruleTitle = route.params?.title;
+
   const { data: banners, refetch: refetchBanners } = useQuery({
     queryKey: ["promo-banners"],
     queryFn: () => getPromoBanners(),
+    enabled: !ruleId,
   });
 
   const {
-    data: products,
-    isLoading,
-    isFetching,
-    isError,
-    refetch,
+    data: allProducts,
+    isLoading: allLoading,
+    isFetching: allFetching,
+    isError: allError,
+    refetch: refetchAll,
   } = useQuery({
     queryKey: ["promo-products", warehouse],
     queryFn: () => getPromoProducts(warehouse),
     retry: 2,
+    enabled: !ruleId,
   });
 
+  const {
+    data: ruleResult,
+    isLoading: ruleLoading,
+    isFetching: ruleFetching,
+    isError: ruleError,
+    refetch: refetchRule,
+  } = useQuery({
+    queryKey: ["promo-rule-products", ruleId, warehouse],
+    queryFn: () => getPromoRuleProducts(ruleId!, warehouse),
+    enabled: Boolean(ruleId),
+    retry: 2,
+  });
+
+  const products = ruleId ? (ruleResult?.products ?? []) : (allProducts ?? []);
+  const isLoading = ruleId ? ruleLoading : allLoading;
+  const isFetching = ruleId ? ruleFetching : allFetching;
+  const isError = ruleId ? ruleError : allError;
+
   const onRefresh = () => {
-    refetchBanners();
-    refetch();
+    if (ruleId) {
+      refetchRule();
+    } else {
+      refetchBanners();
+      refetchAll();
+    }
   };
+
+  const openBanner = (b: { id: string; title: string }) =>
+    navigation.push("Promo", { ruleId: b.id, title: b.title });
 
   return (
     <Screen>
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <View>
-            <Text style={styles.title}>Promo</Text>
-            <Text style={styles.subtitle}>Penawaran terbaik untuk Anda minggu ini</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, flex: 1 }}>
+            {ruleId && (
+              <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
+                <Ionicons name="chevron-back" size={22} color={colors.onSurface} />
+              </Pressable>
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.title} numberOfLines={1}>
+                {ruleId ? (ruleTitle ?? ruleResult?.rule.title ?? "Promo") : "Promo"}
+              </Text>
+              <Text style={styles.subtitle}>
+                {ruleId ? "Produk dalam promo ini" : "Penawaran terbaik untuk Anda minggu ini"}
+              </Text>
+            </View>
           </View>
           <CartButton />
         </View>
@@ -86,20 +128,24 @@ export function PromoScreen({ navigation }: Props) {
         ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
         refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={onRefresh} />}
         ListHeaderComponent={
-          (banners?.length ?? 0) > 0 ? (
+          !ruleId && (banners?.length ?? 0) > 0 ? (
             <FlatList
               data={banners}
               horizontal
               showsHorizontalScrollIndicator={false}
               keyExtractor={(b) => b.id}
               contentContainerStyle={{ gap: spacing.sm, paddingBottom: spacing.lg }}
-              renderItem={({ item }) => <PromoBannerImage uri={item.image} width={width * 0.52} />}
+              renderItem={({ item }) => (
+                <Pressable onPress={() => openBanner(item)}>
+                  <PromoBannerImage uri={item.image} width={width * 0.52} />
+                </Pressable>
+              )}
             />
           ) : null
         }
         ListEmptyComponent={
           isError ? (
-            <Pressable style={styles.errorBox} onPress={() => refetch()}>
+            <Pressable style={styles.errorBox} onPress={onRefresh}>
               <Text style={styles.errorText}>Gagal memuat promo. Coba lagi.</Text>
             </Pressable>
           ) : !isLoading ? (

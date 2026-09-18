@@ -60,6 +60,12 @@ export function HomeScreen({ navigation }: Props) {
 
   const goToTab = (tab: string) => navigation.getParent()?.navigate(tab as never);
 
+  const openBanner = (b: { id: string; title: string }) =>
+    (navigation.getParent()?.navigate as (name: string, params?: object) => void)("PromoTab", {
+      screen: "Promo",
+      params: { ruleId: b.id, title: b.title },
+    });
+
   // Typing happens right here on Beranda — only submitting (pressing
   // enter/search on the keyboard) hands off to the Search tab, passing the
   // typed text along as its initial query.
@@ -223,7 +229,11 @@ export function HomeScreen({ navigation }: Props) {
                 showsHorizontalScrollIndicator={false}
                 keyExtractor={(b) => b.id}
                 contentContainerStyle={{ gap: spacing.sm, paddingHorizontal: spacing.md }}
-                renderItem={({ item }) => <PromoBannerImage uri={item.image} width={width * 0.48} />}
+                renderItem={({ item }) => (
+                  <Pressable onPress={() => openBanner(item)}>
+                    <PromoBannerImage uri={item.image} width={width * 0.48} />
+                  </Pressable>
+                )}
               />
             </View>
           )}

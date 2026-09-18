@@ -1,6 +1,14 @@
 import { apiRequest, isApiConfigured, resolveImageUrl } from "./client";
 import { mockItemGroups, mockPromoBanners, mockPromoProducts, mockProducts } from "../mock-data";
-import type { ItemGroup, Product, ProductPage, ProductQuery, PromoBanner, PromoProduct } from "../types";
+import type {
+  ItemGroup,
+  Product,
+  ProductPage,
+  ProductQuery,
+  PromoBanner,
+  PromoProduct,
+  PromoRuleProducts,
+} from "../types";
 
 function withResolvedImage<T extends { image: string }>(item: T): T {
   return { ...item, image: resolveImageUrl(item.image) };
@@ -82,4 +90,21 @@ export async function getPromoBanners(): Promise<PromoBanner[]> {
   if (!isApiConfigured()) return mockPromoBanners;
   const banners = await apiRequest<PromoBanner[]>("/api/mobile/promo-banners");
   return banners.map(withResolvedImage);
+}
+
+// The items covered by one specific promo banner/Pricing Rule — backs
+// tapping a banner to jump straight to its filtered product list.
+export async function getPromoRuleProducts(
+  ruleId: string,
+  warehouse?: string,
+): Promise<PromoRuleProducts | null> {
+  if (!isApiConfigured()) return null;
+  try {
+    const result = await apiRequest<PromoRuleProducts>("/api/mobile/promo-rule-products", {
+      params: { ruleId, warehouse },
+    });
+    return { ...result, products: result.products.map(withResolvedImage) };
+  } catch {
+    return null;
+  }
 }
