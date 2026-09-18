@@ -127,10 +127,25 @@ export function HomeScreen({ navigation }: Props) {
 
   return (
     <Screen style={{ backgroundColor: colors.primary }}>
+      <View style={styles.stickyBar}>
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={16} color={colors.onSurfaceVariant} />
+          <TextInput
+            style={styles.searchInput}
+            value={searchText}
+            onChangeText={setSearchText}
+            onSubmitEditing={submitSearch}
+            returnKeyType="search"
+            placeholder="Cari produk halal favorit kamu..."
+            placeholderTextColor={colors.onSurfaceVariant}
+          />
+        </View>
+        <CartButton />
+      </View>
+
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: tabBarSpace }]}
         showsVerticalScrollIndicator={false}
-        stickyHeaderIndices={[1]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.onPrimary} />
         }
@@ -187,22 +202,6 @@ export function HomeScreen({ navigation }: Props) {
             </Pressable>
           )}
         </ImageBackground>
-
-        <View style={styles.stickyBar}>
-          <View style={styles.searchBar}>
-            <Ionicons name="search" size={16} color={colors.onSurfaceVariant} />
-            <TextInput
-              style={styles.searchInput}
-              value={searchText}
-              onChangeText={setSearchText}
-              onSubmitEditing={submitSearch}
-              returnKeyType="search"
-              placeholder="Cari produk halal favorit kamu..."
-              placeholderTextColor={colors.onSurfaceVariant}
-            />
-          </View>
-          <CartButton />
-        </View>
 
         <View style={styles.body}>
           <View style={styles.section}>
@@ -374,9 +373,11 @@ const styles = StyleSheet.create({
   },
   greeting: { color: colors.primaryFixed, fontSize: 14, lineHeight: 20, marginBottom: spacing.md },
   greetingName: { color: colors.onPrimary, fontFamily: fonts.body.extraBold, fontSize: 16 },
-  // Pinned via the ScrollView's stickyHeaderIndices — stays visible (search
-  // + cart) once the hero photo scrolls out of view, instead of leaving no
-  // way to search or see the cart without scrolling back up.
+  // Sits outside the ScrollView entirely (a persistent header, not sticky
+  // content) so search + cart are always visible regardless of scroll
+  // position — simpler and more reliable than ScrollView's own
+  // stickyHeaderIndices, which glitched (search and cart briefly rendering
+  // on separate rows) above the dynamic-height hero image.
   stickyBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -384,6 +385,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+    zIndex: 1,
+    shadowColor: colors.black,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
   searchBar: {
     flex: 1,
