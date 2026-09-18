@@ -12,6 +12,7 @@ import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { formatIDR } from "../lib/format";
 import { useCart } from "../state/CartContext";
 import { useAuth } from "../state/AuthContext";
+import { useOutlet } from "../state/OutletContext";
 import { createOrder } from "../lib/api/orders";
 import { getMyAddress } from "../lib/api/profile";
 import { WHATSAPP_NUMBER } from "../lib/mock-data";
@@ -24,6 +25,7 @@ export function CheckoutScreen() {
   const insets = useSafeAreaInsets();
   const { items, selectedTotal, clear } = useCart();
   const { user, isLoggedIn } = useAuth();
+  const { selectedOutlet } = useOutlet();
 
   const selectedItems = items.filter((i) => i.selected);
 
@@ -112,7 +114,8 @@ export function CheckoutScreen() {
       fulfillment === "pickup"
         ? "Metode: Ambil di outlet (Pick Up)"
         : `Metode: Diantar\nAlamat: ${addressLine1}, ${city}${mapsLink}`;
-    const note = `${fulfillmentNote}\nKontak: ${contactNumber.trim()}`;
+    const outletNote = selectedOutlet ? `\nOutlet: ${selectedOutlet.name}` : "";
+    const note = `${fulfillmentNote}${outletNote}\nKontak: ${contactNumber.trim()}`;
 
     setSubmitting(true);
 
@@ -171,6 +174,14 @@ export function CheckoutScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Text style={styles.sectionTitle}>Outlet</Text>
+        <View style={styles.outletCard}>
+          <Ionicons name="storefront-outline" size={18} color={colors.primary} />
+          <Text style={styles.outletText} numberOfLines={1}>
+            {selectedOutlet ? selectedOutlet.name : "Belum ada outlet dipilih"}
+          </Text>
+        </View>
+
         <Text style={styles.sectionTitle}>Ringkasan Pesanan</Text>
         <View style={styles.card}>
           {selectedItems.map((item, idx) => (
@@ -419,6 +430,21 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,
   },
+  outletCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  outletText: { flex: 1, fontSize: 13, fontFamily: fonts.body.semiBold, color: colors.onSurface },
   itemRow: {
     flexDirection: "row",
     justifyContent: "space-between",
