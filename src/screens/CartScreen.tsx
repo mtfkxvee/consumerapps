@@ -1,20 +1,56 @@
-import { FlatList, Image, StyleSheet, View } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, Alert, FlatList, Image, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Screen } from "../components/Screen";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
+import { OutletPicker } from "../components/OutletPicker";
 import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { formatIDR } from "../lib/format";
 import { useCart } from "../state/CartContext";
+import { useOutlet } from "../state/OutletContext";
+import { checkStock } from "../lib/api/products";
 import type { RootStackParamList } from "../navigation/types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Cart">;
 
 export function CartScreen({ navigation }: Props) {
   const { items, remove, setQty, toggleSelected, selectAll, allSelected, selectedTotal } = useCart();
+  const { selectedOutlet } = useOutlet();
   const insets = useSafeAreaInsets();
+  const [checkingStock, setCheckingStock] = useState(false);
+
+  // Verified against whichever outlet is currently selected, right before
+  // handing off to Checkout — an outlet is required for this (there's no
+  // single warehouse to check against for "Semua Outlet"), and catches an
+  // item that's since sold out there instead of it only surfacing later.
+  const handleCheckoutPress = async () => {
+    if (!selectedOutlet) {
+      Alert.alert("Pilih Outlet", "Pilih outlet terlebih dahulu untuk memeriksa ketersediaan barang.");
+      return;
+    }
+    const selectedItems = items.filter((i) => i.selected);
+    if (selectedItems.length === 0) return;
+
+    setCheckingStock(true);
+    const outOfStock = selectedOutlet.warehouse
+      ? await checkStock(selectedItems.map((i) => i.id), selectedOutlet.warehouse)
+      : [];
+    setCheckingStock(false);
+
+    if (outOfStock.length > 0) {
+      const names = selectedItems.filter((i) => outOfStock.includes(i.id)).map((i) => i.name);
+      Alert.alert(
+        "Stok Tidak Tersedia",
+        `Barang berikut tidak tersedia di ${selectedOutlet.name}:\n\n${names.join("\n")}\n\nHapus atau ganti outlet untuk melanjutkan.`,
+      );
+      return;
+    }
+
+    navigation.navigate("Checkout");
+  };
 
   if (items.length === 0) {
     return (
@@ -42,6 +78,10 @@ export function CartScreen({ navigation }: Props) {
         </Pressable>
         <Text style={styles.headerTitle}>Keranjang Saya</Text>
         <View style={{ width: 22 }} />
+      </View>
+
+      <View style={styles.outletRow}>
+        <OutletPicker />
       </View>
 
       <FlatList
@@ -105,11 +145,18 @@ export function CartScreen({ navigation }: Props) {
           </View>
         </View>
         <Pressable
-          style={[styles.checkoutButton, selectedTotal === 0 && styles.checkoutButtonDisabled]}
-          onPress={() => navigation.navigate("Checkout")}
-          disabled={selectedTotal === 0}
+          style={[
+            styles.checkoutButton,
+            (selectedTotal === 0 || checkingStock) && styles.checkoutButtonDisabled,
+          ]}
+          onPress={handleCheckoutPress}
+          disabled={selectedTotal === 0 || checkingStock}
         >
-          <Text style={styles.checkoutText}>Checkout</Text>
+          {checkingStock ? (
+            <ActivityIndicator color={colors.white} />
+          ) : (
+            <Text style={styles.checkoutText}>Checkout</Text>
+          )}
         </Pressable>
       </View>
       <View style={{ height: insets.bottom, backgroundColor: colors.surface }} />
@@ -127,6 +174,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xs,
   },
   headerTitle: { ...typography.headlineMd, color: colors.onSurface },
+  outletRow: { paddingHorizontal: spacing.md, paddingBottom: spacing.xs },
   empty: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.sm },
   emptyText: { color: colors.onSurfaceVariant },
   row: {

@@ -60,6 +60,24 @@ export async function getPromoProducts(warehouse?: string): Promise<PromoProduct
   return products.map(withResolvedImage);
 }
 
+// Checked right before Cart hands off to Checkout, against whichever
+// outlet is currently selected — one call for the whole cart instead of
+// one per item, so a since-sold-out item at that specific outlet gets
+// caught before checkout instead of only surfacing there.
+export async function checkStock(itemCodes: string[], warehouse: string): Promise<string[]> {
+  if (!isApiConfigured() || itemCodes.length === 0) return [];
+  try {
+    const res = await apiRequest<{ outOfStock: string[] }>("/api/mobile/products/check-stock", {
+      method: "POST",
+      body: { itemCodes, warehouse },
+    });
+    return res.outOfStock;
+  } catch {
+    // Best-effort: if the check itself fails, don't block checkout over it.
+    return [];
+  }
+}
+
 export async function getPromoBanners(): Promise<PromoBanner[]> {
   if (!isApiConfigured()) return mockPromoBanners;
   const banners = await apiRequest<PromoBanner[]>("/api/mobile/promo-banners");
