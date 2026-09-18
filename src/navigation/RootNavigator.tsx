@@ -16,6 +16,7 @@ import { EditProfileScreen } from "../screens/EditProfileScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { OrdersScreen } from "../screens/OrdersScreen";
 import { OrderDetailScreen } from "../screens/OrderDetailScreen";
+import { NotificationsScreen } from "../screens/NotificationsScreen";
 import { FloatingTabBar } from "./FloatingTabBar";
 import { useAuth } from "../state/AuthContext";
 import type {
@@ -144,6 +145,11 @@ export function RootNavigator() {
         <RootStack.Screen
           name="OrderDetail"
           component={OrderDetailScreen}
+          options={{ animation: "slide_from_right" }}
+        />
+        <RootStack.Screen
+          name="Notifications"
+          component={NotificationsScreen}
           options={{ animation: "slide_from_right" }}
         />
       </RootStack.Navigator>

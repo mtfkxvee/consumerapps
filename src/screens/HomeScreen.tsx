@@ -356,7 +356,7 @@ export function HomeScreen({ navigation }: Props) {
         </Animated.View>
         <Pressable
           style={[styles.notifButton, scrolled ? styles.notifButtonDark : styles.notifButtonLight]}
-          onPress={() => goToTab("AccountTab")}
+          onPress={() => navigation.navigate("Notifications" as never)}
         >
           <Ionicons
             name="notifications-outline"

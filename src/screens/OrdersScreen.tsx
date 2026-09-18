@@ -11,6 +11,7 @@ import { Pressable } from "../components/Pressable";
 import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { formatIDR } from "../lib/format";
 import { getMyOrders, getMyPesanan, resumePayment } from "../lib/api/orders";
+import { DELIVERY_STATUS_LABELS } from "../lib/orderStage";
 import type { OrderStage } from "../lib/types";
 
 type Tab = OrderStage;
@@ -21,16 +22,6 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "shipping", label: "Pengiriman" },
   { key: "completed", label: "Diterima" },
 ];
-
-// Raw Delivery Request statuses (see erp.x-sha.id Delivery Request doctype)
-// translated for display.
-const DELIVERY_STATUS_LABELS: Record<string, string> = {
-  Pending: "Menunggu Penugasan",
-  Ditugaskan: "Ditugaskan ke Kurir",
-  "Dalam Perjalanan": "Dalam Perjalanan",
-  Terkirim: "Terkirim",
-  Gagal: "Pengiriman Gagal",
-};
 
 // One row shape for every tab — "completed" merges the app's own paid-and-
 // delivered orders (Pesanan) with the existing in-store Sales Invoice
