@@ -8,6 +8,7 @@ import { PromoScreen } from "../screens/PromoScreen";
 import { ProductDetailScreen } from "../screens/ProductDetailScreen";
 import { CartScreen } from "../screens/CartScreen";
 import { CheckoutScreen } from "../screens/CheckoutScreen";
+import { MapPickerScreen } from "../screens/MapPickerScreen";
 import { AccountScreen } from "../screens/AccountScreen";
 import { CompleteProfileScreen } from "../screens/CompleteProfileScreen";
 import { MemberBarcodeScreen } from "../screens/MemberBarcodeScreen";
@@ -105,6 +106,11 @@ export function RootNavigator() {
           name="Checkout"
           component={CheckoutScreen}
           options={{ animation: "slide_from_right" }}
+        />
+        <RootStack.Screen
+          name="MapPicker"
+          component={MapPickerScreen}
+          options={{ presentation: "modal" }}
         />
         <RootStack.Screen
           name="MemberBarcode"

@@ -86,6 +86,8 @@ export async function completeProfile(data: {
   mobile: string;
   addressLine1?: string;
   city?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }): Promise<{ ok: true } | { ok: false; message: string }> {
   if (!isApiConfigured()) return { ok: true };
 

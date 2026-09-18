@@ -30,7 +30,12 @@ export function CheckoutScreen() {
   const [useRegisteredAddress, setUseRegisteredAddress] = useState(true);
   const [addressLine1, setAddressLine1] = useState("");
   const [city, setCity] = useState("");
-  const [registeredAddress, setRegisteredAddress] = useState<{ line1: string; city: string } | null>(null);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [registeredAddress, setRegisteredAddress] = useState<{
+    line1: string;
+    city: string;
+    coords: { lat: number; lng: number } | null;
+  } | null>(null);
   const [loadingAddress, setLoadingAddress] = useState(false);
   const [promoCode, setPromoCode] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("automatic");
@@ -42,10 +47,15 @@ export function CheckoutScreen() {
     getMyAddress()
       .then((addr) => {
         if (!addr) return;
-        setRegisteredAddress({ line1: addr.line1, city: addr.city });
+        const addrCoords =
+          addr.latitude != null && addr.longitude != null
+            ? { lat: addr.latitude, lng: addr.longitude }
+            : null;
+        setRegisteredAddress({ line1: addr.line1, city: addr.city, coords: addrCoords });
         if (useRegisteredAddress) {
           setAddressLine1(addr.line1);
           setCity(addr.city);
+          setCoords(addrCoords);
         }
       })
       .finally(() => setLoadingAddress(false));
@@ -57,6 +67,7 @@ export function CheckoutScreen() {
     if (registeredAddress) {
       setAddressLine1(registeredAddress.line1);
       setCity(registeredAddress.city);
+      setCoords(registeredAddress.coords);
     }
   };
 
@@ -64,6 +75,15 @@ export function CheckoutScreen() {
     setUseRegisteredAddress(false);
     setAddressLine1("");
     setCity("");
+    setCoords(null);
+  };
+
+  const pickLocation = () => {
+    (navigation.navigate as (name: string, params?: object) => void)("MapPicker", {
+      initialLat: coords?.lat,
+      initialLng: coords?.lng,
+      onSelect: (lat: number, lng: number) => setCoords({ lat, lng }),
+    });
   };
 
   const sendToWhatsapp = (note: string) => {
@@ -81,10 +101,11 @@ export function CheckoutScreen() {
       return;
     }
 
+    const mapsLink = coords ? `\nTitik Lokasi: https://maps.google.com/?q=${coords.lat},${coords.lng}` : "";
     const note =
       fulfillment === "pickup"
         ? "Metode: Ambil di outlet (Pick Up)"
-        : `Metode: Diantar\nAlamat: ${addressLine1}, ${city}`;
+        : `Metode: Diantar\nAlamat: ${addressLine1}, ${city}${mapsLink}`;
 
     setSubmitting(true);
 
@@ -253,6 +274,18 @@ export function CheckoutScreen() {
                     placeholderTextColor={colors.onSurfaceVariant}
                   />
                 </View>
+
+                <Pressable style={styles.mapButton} onPress={pickLocation}>
+                  <Ionicons name="map-outline" size={18} color={colors.primary} />
+                  <Text style={styles.mapButtonText}>
+                    {coords ? "Ubah Titik Lokasi di Peta" : "Pilih Titik Lokasi di Peta"}
+                  </Text>
+                </Pressable>
+                {coords && (
+                  <Text style={styles.coordHint}>
+                    Titik tersimpan: {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}
+                  </Text>
+                )}
               </>
             )}
           </View>
@@ -403,6 +436,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   input: { flex: 1, color: colors.onSurface, fontSize: 13 },
+  mapButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: radius.full,
+    height: 44,
+    marginBottom: spacing.xs,
+  },
+  mapButtonText: { fontSize: 13, fontFamily: fonts.body.bold, color: colors.primary },
+  coordHint: { fontSize: 11, color: colors.onSurfaceVariant, textAlign: "center" },
   promoRow: { flexDirection: "row", gap: spacing.sm, alignItems: "center" },
   promoButton: {
     backgroundColor: colors.primary,

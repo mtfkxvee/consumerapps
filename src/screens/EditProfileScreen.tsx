@@ -25,6 +25,7 @@ export function EditProfileScreen() {
   const [mobile, setMobile] = useState(user?.customer?.mobile ?? "");
   const [addressLine1, setAddressLine1] = useState("");
   const [city, setCity] = useState("");
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [loadingAddress, setLoadingAddress] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -35,6 +36,9 @@ export function EditProfileScreen() {
       if (cancelled || !address) return;
       setAddressLine1(address.line1);
       setCity(address.city);
+      if (address.latitude != null && address.longitude != null) {
+        setCoords({ lat: address.latitude, lng: address.longitude });
+      }
     }).finally(() => {
       if (!cancelled) setLoadingAddress(false);
     });
@@ -42,6 +46,14 @@ export function EditProfileScreen() {
       cancelled = true;
     };
   }, []);
+
+  const pickLocation = () => {
+    (navigation.navigate as (name: string, params?: object) => void)("MapPicker", {
+      initialLat: coords?.lat,
+      initialLng: coords?.lng,
+      onSelect: (lat: number, lng: number) => setCoords({ lat, lng }),
+    });
+  };
 
   const handleSubmit = async () => {
     setError(null);
@@ -55,6 +67,8 @@ export function EditProfileScreen() {
       mobile: mobile.trim(),
       addressLine1: addressLine1.trim(),
       city: city.trim(),
+      latitude: coords?.lat ?? null,
+      longitude: coords?.lng ?? null,
     });
     setSaving(false);
     if (!res.ok) {
@@ -134,6 +148,18 @@ export function EditProfileScreen() {
                   />
                 </View>
 
+                <Pressable style={styles.mapButton} onPress={pickLocation}>
+                  <Ionicons name="map-outline" size={18} color={colors.primary} />
+                  <Text style={styles.mapButtonText}>
+                    {coords ? "Ubah Titik Lokasi di Peta" : "Pilih Titik Lokasi di Peta"}
+                  </Text>
+                </Pressable>
+                {coords && (
+                  <Text style={styles.coordHint}>
+                    Titik tersimpan: {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}
+                  </Text>
+                )}
+
                 {error && <Text style={styles.error}>{error}</Text>}
 
                 <Pressable style={styles.submitButton} onPress={handleSubmit} disabled={saving}>
@@ -183,6 +209,24 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   input: { flex: 1, color: colors.onSurface, fontSize: 14 },
+  mapButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: radius.full,
+    height: 44,
+    marginBottom: spacing.xs,
+  },
+  mapButtonText: { fontSize: 13, fontFamily: fonts.body.bold, color: colors.primary },
+  coordHint: {
+    fontSize: 11,
+    color: colors.onSurfaceVariant,
+    textAlign: "center",
+    marginBottom: spacing.md,
+  },
   error: { color: colors.error, fontSize: 12, marginBottom: spacing.sm, textAlign: "center" },
   submitButton: {
     backgroundColor: colors.primary,

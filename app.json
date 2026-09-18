@@ -41,7 +41,13 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "X-SHA menggunakan lokasi Anda untuk membantu memilih titik alamat pengiriman di peta."
+        }
+      ]
     ]
   }
 }

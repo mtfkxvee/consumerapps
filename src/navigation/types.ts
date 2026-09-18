@@ -43,6 +43,11 @@ export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<RootTabParamList>;
   Cart: undefined;
   Checkout: undefined;
+  MapPicker: {
+    initialLat?: number | null;
+    initialLng?: number | null;
+    onSelect: (lat: number, lng: number) => void;
+  };
   MemberBarcode: undefined;
   EditProfile: undefined;
   OrderDetail: { id: string };

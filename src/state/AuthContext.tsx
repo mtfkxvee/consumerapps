@@ -24,6 +24,8 @@ type AuthContextValue = {
     mobile: string;
     addressLine1?: string;
     city?: string;
+    latitude?: number | null;
+    longitude?: number | null;
   }) => Promise<{ ok: true } | { ok: false; message: string }>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -66,7 +68,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const completeProfile = useCallback(
-    async (data: { name: string; mobile: string; addressLine1?: string; city?: string }) => {
+    async (data: {
+      name: string;
+      mobile: string;
+      addressLine1?: string;
+      city?: string;
+      latitude?: number | null;
+      longitude?: number | null;
+    }) => {
       const res = await completeProfileApi(data);
       if (res.ok) {
         setNeedsProfileCompletion(false);
