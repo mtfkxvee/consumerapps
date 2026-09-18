@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { useNavigation } from "@react-navigation/native";
@@ -9,57 +9,114 @@ import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
 import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { formatIDR } from "../lib/format";
-import { getMyQuotations, resumePayment } from "../lib/api/orders";
-import type { QuotationOrder } from "../lib/types";
+import { getMyOrders, getMyPesanan, resumePayment } from "../lib/api/orders";
+import type { OrderStage } from "../lib/types";
 
-// Raw ERPNext Quotation statuses, mapped to what a shopper should actually
-// see — "Ordered" means DOKU confirmed payment and it became a Sales
-// Order; everything else still needs the shopper's attention.
-const STATUS_LABELS: Record<string, string> = {
-  Open: "Menunggu Pembayaran",
-  Ordered: "Sedang Diproses",
-  Cancelled: "Dibatalkan",
-  Expired: "Kedaluwarsa",
-  Lost: "Dibatalkan",
+type Tab = OrderStage;
+
+const TABS: { key: Tab; label: string }[] = [
+  { key: "unpaid", label: "Belum Dibayar" },
+  { key: "preparing", label: "Disiapkan" },
+  { key: "shipping", label: "Pengiriman" },
+  { key: "completed", label: "Diterima" },
+];
+
+// Raw Delivery Request statuses (see erp.x-sha.id Delivery Request doctype)
+// translated for display.
+const DELIVERY_STATUS_LABELS: Record<string, string> = {
+  Pending: "Menunggu Penugasan",
+  Ditugaskan: "Ditugaskan ke Kurir",
+  "Dalam Perjalanan": "Dalam Perjalanan",
+  Terkirim: "Terkirim",
+  Gagal: "Pengiriman Gagal",
 };
 
-function statusLabel(status: string): string {
-  return STATUS_LABELS[status] ?? status;
-}
-
-function isResumable(status: string): boolean {
-  return status !== "Ordered" && status !== "Cancelled" && status !== "Expired" && status !== "Lost";
-}
-
-function statusTone(status: string): "pending" | "done" | "muted" {
-  if (status === "Ordered") return "done";
-  if (status === "Cancelled" || status === "Expired" || status === "Lost") return "muted";
-  return "pending";
-}
+// One row shape for every tab — "completed" merges the app's own paid-and-
+// delivered orders (Pesanan) with the existing in-store Sales Invoice
+// history (Order), which is why this exists instead of just using Pesanan
+// directly.
+type Row = {
+  id: string;
+  date: string;
+  total: number;
+  statusText: string;
+  resumable: boolean;
+  // Only Sales Invoice rows have item-level detail (OrderDetailScreen) —
+  // a "completed" Pesanan row is still a Quotation under the hood, which
+  // that screen doesn't resolve.
+  hasDetail: boolean;
+};
 
 export function OrdersScreen() {
   const navigation = useNavigation();
+  const [tab, setTab] = useState<Tab>("unpaid");
   const [resumingId, setResumingId] = useState<string | null>(null);
 
   const {
-    data: orders,
-    isLoading,
-    isError,
-    isFetching,
-    refetch,
-  } = useQuery({
-    queryKey: ["my-quotations"],
-    queryFn: () => getMyQuotations(),
-  });
+    data: pesanan,
+    isLoading: pesananLoading,
+    isError: pesananError,
+    isFetching: pesananFetching,
+    refetch: refetchPesanan,
+  } = useQuery({ queryKey: ["my-pesanan"], queryFn: () => getMyPesanan() });
+
+  const {
+    data: invoices,
+    isLoading: invoicesLoading,
+    isFetching: invoicesFetching,
+    refetch: refetchInvoices,
+  } = useQuery({ queryKey: ["my-orders"], queryFn: () => getMyOrders() });
+
+  const isLoading = pesananLoading || (tab === "completed" && invoicesLoading);
+  const isFetching = pesananFetching || invoicesFetching;
+
+  const refetch = () => {
+    refetchPesanan();
+    refetchInvoices();
+  };
+
+  const rows = useMemo((): Row[] => {
+    const fromPesanan = (pesanan ?? [])
+      .filter((p) => p.stage === tab)
+      .map(
+        (p): Row => ({
+          id: p.id,
+          date: p.date,
+          total: p.total,
+          statusText:
+            tab === "shipping" && p.deliveryStatus
+              ? (DELIVERY_STATUS_LABELS[p.deliveryStatus] ?? p.deliveryStatus)
+              : tab === "unpaid"
+                ? "Menunggu Pembayaran"
+                : tab === "preparing"
+                  ? "Sedang Disiapkan"
+                  : "Diterima",
+          resumable: tab === "unpaid",
+          hasDetail: false,
+        }),
+      );
+
+    if (tab !== "completed") return fromPesanan;
+
+    const fromInvoices = (invoices ?? []).map(
+      (o): Row => ({
+        id: o.id,
+        date: o.date,
+        total: o.total,
+        statusText: o.status,
+        resumable: false,
+        hasDetail: true,
+      }),
+    );
+
+    return [...fromPesanan, ...fromInvoices].sort((a, b) => (a.date < b.date ? 1 : -1));
+  }, [pesanan, invoices, tab]);
 
   const handleResume = async (id: string) => {
     setResumingId(id);
     const result = await resumePayment(id);
     setResumingId(null);
-
-    if (!result.ok) {
-      return;
-    }
+    if (!result.ok) return;
     await WebBrowser.openBrowserAsync(result.paymentUrl);
     refetch();
   };
@@ -74,9 +131,25 @@ export function OrdersScreen() {
         <View style={{ width: 22 }} />
       </View>
 
-      {isError ? (
+      <FlatList
+        horizontal
+        data={TABS}
+        keyExtractor={(t) => t.key}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.tabRow}
+        renderItem={({ item }) => {
+          const active = tab === item.key;
+          return (
+            <Pressable style={[styles.tab, active && styles.tabActive]} onPress={() => setTab(item.key)}>
+              <Text style={[styles.tabText, active && styles.tabTextActive]}>{item.label}</Text>
+            </Pressable>
+          );
+        }}
+      />
+
+      {pesananError ? (
         <View style={styles.center}>
-          <Pressable style={styles.errorBox} onPress={() => refetch()}>
+          <Pressable style={styles.errorBox} onPress={refetch}>
             <Text style={styles.errorText}>Gagal memuat pesanan. Ketuk untuk coba lagi.</Text>
           </Pressable>
         </View>
@@ -86,57 +159,46 @@ export function OrdersScreen() {
         </View>
       ) : (
         <FlatList
-          data={orders}
-          keyExtractor={(o) => o.id}
+          data={rows}
+          keyExtractor={(r) => r.id}
           contentContainerStyle={styles.list}
-          refreshControl={
-            <RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} />
-          }
-          ListEmptyComponent={<Text style={styles.empty}>Belum ada pesanan.</Text>}
-          renderItem={({ item }: { item: QuotationOrder }) => {
-            const tone = statusTone(item.status);
-            return (
-              <View style={styles.card}>
-                <View style={styles.cardTopRow}>
-                  <Text style={styles.orderId}>{item.id}</Text>
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      tone === "done" && styles.statusBadgeDone,
-                      tone === "muted" && styles.statusBadgeMuted,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.statusText,
-                        tone === "done" && styles.statusTextDone,
-                        tone === "muted" && styles.statusTextMuted,
-                      ]}
-                    >
-                      {statusLabel(item.status)}
-                    </Text>
-                  </View>
-                </View>
-                <Text style={styles.orderDate}>{item.date}</Text>
-                <View style={styles.cardBottomRow}>
-                  <Text style={styles.orderTotal}>{formatIDR(item.total)}</Text>
-                  {isResumable(item.status) && (
-                    <Pressable
-                      style={styles.resumeButton}
-                      onPress={() => handleResume(item.id)}
-                      disabled={resumingId === item.id}
-                    >
-                      {resumingId === item.id ? (
-                        <ActivityIndicator size="small" color={colors.onPrimary} />
-                      ) : (
-                        <Text style={styles.resumeButtonText}>Lanjutkan Pembayaran</Text>
-                      )}
-                    </Pressable>
-                  )}
+          refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={refetch} />}
+          ListEmptyComponent={<Text style={styles.empty}>Tidak ada pesanan di tahap ini.</Text>}
+          renderItem={({ item }) => (
+            <Pressable
+              style={styles.card}
+              disabled={!item.hasDetail}
+              onPress={() =>
+                (navigation.navigate as (name: string, params?: object) => void)("OrderDetail", {
+                  id: item.id,
+                })
+              }
+            >
+              <View style={styles.cardTopRow}>
+                <Text style={styles.orderId}>{item.id}</Text>
+                <View style={styles.statusBadge}>
+                  <Text style={styles.statusText}>{item.statusText}</Text>
                 </View>
               </View>
-            );
-          }}
+              <Text style={styles.orderDate}>{item.date}</Text>
+              <View style={styles.cardBottomRow}>
+                <Text style={styles.orderTotal}>{formatIDR(item.total)}</Text>
+                {item.resumable && (
+                  <Pressable
+                    style={styles.resumeButton}
+                    onPress={() => handleResume(item.id)}
+                    disabled={resumingId === item.id}
+                  >
+                    {resumingId === item.id ? (
+                      <ActivityIndicator size="small" color={colors.onPrimary} />
+                    ) : (
+                      <Text style={styles.resumeButtonText}>Lanjutkan Pembayaran</Text>
+                    )}
+                  </Pressable>
+                )}
+              </View>
+            </Pressable>
+          )}
         />
       )}
     </Screen>
@@ -153,6 +215,16 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xs,
   },
   headerTitle: { ...typography.headlineMd, color: colors.onSurface },
+  tabRow: { gap: spacing.xs, paddingHorizontal: spacing.md, paddingBottom: spacing.sm },
+  tab: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    borderRadius: radius.full,
+    backgroundColor: colors.surfaceContainer,
+  },
+  tabActive: { backgroundColor: colors.primary },
+  tabText: { fontSize: 12, fontFamily: fonts.body.semiBold, color: colors.onSurfaceVariant },
+  tabTextActive: { color: colors.onPrimary },
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.lg },
   errorBox: { padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.errorContainer },
   errorText: { color: colors.error, fontSize: 13, fontFamily: fonts.body.semiBold, textAlign: "center" },
@@ -181,13 +253,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
     borderRadius: radius.full,
-    backgroundColor: "#FFF3D6",
+    backgroundColor: colors.primaryFixed,
   },
-  statusBadgeDone: { backgroundColor: colors.successContainer },
-  statusBadgeMuted: { backgroundColor: colors.surfaceContainer },
-  statusText: { fontSize: 10, fontFamily: fonts.body.bold, color: "#8A6A1E" },
-  statusTextDone: { color: colors.success },
-  statusTextMuted: { color: colors.onSurfaceVariant },
+  statusText: { fontSize: 10, fontFamily: fonts.body.bold, color: colors.primary },
   cardBottomRow: {
     flexDirection: "row",
     justifyContent: "space-between",

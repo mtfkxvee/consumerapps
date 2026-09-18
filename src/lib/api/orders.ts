@@ -2,7 +2,7 @@ import * as Linking from "expo-linking";
 import { apiRequest, isApiConfigured } from "./client";
 import { mockOrders } from "../mock-data";
 import { getCurrentCustomer } from "./auth";
-import type { Order, OrderDetail, OrderLine, QuotationOrder } from "../types";
+import type { Order, OrderDetail, OrderLine, Pesanan } from "../types";
 
 export type CreateOrderResult =
   | { ok: true; orderId: string; paymentUrl?: string }
@@ -32,13 +32,14 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
   }
 }
 
-// "Pesanan Saya" — the customer's own checkout-created orders (Quotations),
-// distinct from getMyOrders above (completed in-store Sales Invoices).
-// Shows whether payment is still pending so an unfinished checkout can be
-// resumed instead of started over.
-export async function getMyQuotations(): Promise<QuotationOrder[]> {
+// "Pesanan Saya" — the customer's own checkout-created orders, tracked
+// through their full lifecycle (unpaid/preparing/shipping/completed —
+// see the Pesanan/OrderStage doc comment in ../types), distinct from
+// getMyOrders above (completed in-store Sales Invoices, unrelated to the
+// app's own checkout).
+export async function getMyPesanan(): Promise<Pesanan[]> {
   if (!isApiConfigured()) return [];
-  return apiRequest<QuotationOrder[]>("/api/mobile/quotations", { auth: true });
+  return apiRequest<Pesanan[]>("/api/mobile/quotations", { auth: true });
 }
 
 export async function resumePayment(

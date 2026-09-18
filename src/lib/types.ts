@@ -70,15 +70,22 @@ export type OrderLine = {
   rate: number;
 };
 
-// "Pesanan" — an order placed via the app's own checkout (a Quotation),
-// distinct from Order above (a completed in-store Sales Invoice). Status
-// "Ordered" means payment was confirmed and it was converted to a Sales
-// Order; anything else is still awaiting payment/action.
-export type QuotationOrder = {
+// "Pesanan" — an order placed via the app's own checkout, tracked through
+// its full lifecycle, distinct from Order above (a completed in-store
+// Sales Invoice, unrelated to the app's own checkout):
+//   unpaid     awaiting DOKU payment confirmation
+//   preparing  paid, converted to a Sales Order, no delivery linked yet
+//   shipping   a Delivery Request is linked, not yet marked "Terkirim"
+//   completed  that Delivery Request is "Terkirim" (delivered)
+export type OrderStage = "unpaid" | "preparing" | "shipping" | "completed";
+
+export type Pesanan = {
   id: string;
   date: string;
   status: string;
   total: number;
+  stage: OrderStage;
+  deliveryStatus: string | null;
 };
 
 export type LoyaltyStatus = {
