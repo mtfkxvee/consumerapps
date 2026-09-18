@@ -1,4 +1,4 @@
-import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
@@ -18,7 +18,7 @@ export function AccountScreen() {
   const { user, isLoading, isLoggedIn, logout } = useAuth();
   const tabBarSpace = useTabBarSpace();
 
-  const { data: loyalty } = useQuery({
+  const { data: loyalty, refetch: refetchLoyalty, isFetching: loyaltyFetching } = useQuery({
     queryKey: ["loyalty-status"],
     queryFn: () => getMyLoyaltyStatus(),
     enabled: isLoggedIn,
@@ -27,6 +27,7 @@ export function AccountScreen() {
   const {
     data: orders,
     isLoading: ordersLoading,
+    isFetching: ordersFetching,
     isError: ordersError,
     refetch: refetchOrders,
   } = useQuery({
@@ -34,6 +35,12 @@ export function AccountScreen() {
     queryFn: () => getMyOrders(),
     enabled: isLoggedIn,
   });
+
+  const refreshing = !ordersLoading && (ordersFetching || loyaltyFetching);
+  const onRefresh = () => {
+    refetchLoyalty();
+    refetchOrders();
+  };
 
   if (isLoading) {
     return (
@@ -50,7 +57,10 @@ export function AccountScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: tabBarSpace }}>
+      <ScrollView
+        contentContainerStyle={{ padding: spacing.md, paddingBottom: tabBarSpace }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         <View style={styles.header}>
           <View>
             <Text style={styles.title}>Akun Saya</Text>

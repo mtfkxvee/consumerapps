@@ -1,5 +1,5 @@
 import { useWindowDimensions } from "react-native";
-import { FlatList, StyleSheet, View } from "react-native";
+import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Screen } from "../components/Screen";
@@ -25,7 +25,7 @@ export function PromoScreen({ navigation }: Props) {
   const warehouse = selectedOutlet?.warehouse ?? undefined;
   const tabBarSpace = useTabBarSpace();
 
-  const { data: banners } = useQuery({
+  const { data: banners, refetch: refetchBanners } = useQuery({
     queryKey: ["promo-banners"],
     queryFn: () => getPromoBanners(),
   });
@@ -33,6 +33,7 @@ export function PromoScreen({ navigation }: Props) {
   const {
     data: products,
     isLoading,
+    isFetching,
     isError,
     refetch,
   } = useQuery({
@@ -40,6 +41,11 @@ export function PromoScreen({ navigation }: Props) {
     queryFn: () => getPromoProducts(warehouse),
     retry: 2,
   });
+
+  const onRefresh = () => {
+    refetchBanners();
+    refetch();
+  };
 
   return (
     <Screen>
@@ -78,6 +84,7 @@ export function PromoScreen({ navigation }: Props) {
         contentContainerStyle={[styles.list, { paddingBottom: tabBarSpace }]}
         columnWrapperStyle={{ gap: spacing.sm }}
         ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
+        refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={onRefresh} />}
         ListHeaderComponent={
           (banners?.length ?? 0) > 0 ? (
             <FlatList

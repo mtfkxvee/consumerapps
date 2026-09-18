@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { FlatList, Modal, StyleSheet, TextInput, View } from "react-native";
+import { FlatList, Modal, RefreshControl, StyleSheet, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -96,6 +96,7 @@ export function SearchScreen({ navigation, route }: Props) {
   const {
     data,
     isLoading,
+    isFetching,
     isError,
     refetch,
   } = useQuery({
@@ -161,6 +162,9 @@ export function SearchScreen({ navigation, route }: Props) {
         contentContainerStyle={[styles.list, { paddingBottom: tabBarSpace }]}
         columnWrapperStyle={{ gap: spacing.sm }}
         ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
+        refreshControl={
+          <RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} />
+        }
         ListHeaderComponent={
           <>
             {!isBrowsing && history.length > 0 && (

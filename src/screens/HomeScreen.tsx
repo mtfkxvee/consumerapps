@@ -3,6 +3,7 @@ import {
   FlatList,
   ImageBackground,
   Linking,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -71,13 +72,13 @@ export function HomeScreen({ navigation }: Props) {
     setSearchText("");
   };
 
-  const { data: departments } = useQuery({
+  const { data: departments, refetch: refetchDepartments } = useQuery({
     queryKey: ["item-groups", "root"],
     queryFn: () => getItemGroupChildren(),
     staleTime: 10 * 60_000,
   });
 
-  const { data: loyalty } = useQuery({
+  const { data: loyalty, refetch: refetchLoyalty } = useQuery({
     queryKey: ["loyalty-status"],
     queryFn: () => getMyLoyaltyStatus(),
     enabled: isLoggedIn,
@@ -94,15 +95,32 @@ export function HomeScreen({ navigation }: Props) {
     retry: 2,
   });
 
-  const { data: banners } = useQuery({
+  const { data: banners, refetch: refetchBanners } = useQuery({
     queryKey: ["promo-banners"],
     queryFn: () => getPromoBanners(),
   });
 
-  const { data: productsPage, isLoading: productsLoading } = useQuery({
+  const {
+    data: productsPage,
+    isLoading: productsLoading,
+    refetch: refetchProducts,
+  } = useQuery({
     queryKey: ["products", { pageSize: 6 }],
     queryFn: () => getProducts({ page: 1, pageSize: 6 }),
   });
+
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([
+      refetchDepartments(),
+      refetchLoyalty(),
+      refetchDeals(),
+      refetchBanners(),
+      refetchProducts(),
+    ]);
+    setRefreshing(false);
+  };
 
   const products = productsPage?.products ?? [];
   const displayName = user?.customer?.name ?? user?.email ?? "Tamu";
@@ -112,6 +130,9 @@ export function HomeScreen({ navigation }: Props) {
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: tabBarSpace }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.onPrimary} />
+        }
       >
         <ImageBackground
           source={HEADER_IMAGE}

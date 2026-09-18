@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { FlatList, StyleSheet, View } from "react-native";
+import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Screen } from "../components/Screen";
@@ -113,6 +113,7 @@ export function CatalogScreen({ navigation, route }: Props) {
   const {
     data,
     isLoading,
+    isFetching,
     isError,
     refetch,
   } = useQuery({
@@ -217,6 +218,9 @@ export function CatalogScreen({ navigation, route }: Props) {
         columnWrapperStyle={{ gap: spacing.sm }}
         ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
         ListEmptyComponent={<Text style={styles.empty}>Tidak ada produk yang cocok.</Text>}
+        refreshControl={
+          <RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} />
+        }
         renderItem={({ item }) => (
           <View style={{ flex: 1 }}>
             <ProductCard
