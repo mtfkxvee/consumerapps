@@ -184,7 +184,6 @@ export function HomeScreen({ navigation }: Props) {
           imageStyle={styles.headerImage}
         >
           <View style={styles.headerOverlay} />
-          <Text style={[styles.brand, { marginBottom: spacing.md }]}>X-SHA</Text>
 
           <Text style={styles.greeting}>
             Selamat datang,{"\n"}
@@ -378,7 +377,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.md,
     // Clears the floating search/cart bar, which overlays this hero from
-    // outside its own layout (see floatingBar) — otherwise the brand row
+    // outside its own layout (see floatingBar) — otherwise the greeting
     // would render underneath it.
     paddingTop: 62,
     paddingBottom: spacing.lg,
@@ -395,7 +394,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     opacity: 0.55,
   },
-  brand: { color: colors.onPrimary, fontSize: 20, fontFamily: fonts.display.extraBold, letterSpacing: 0.5 },
   notifButton: {
     width: 36,
     height: 36,
