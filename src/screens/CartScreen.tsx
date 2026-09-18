@@ -1,15 +1,4 @@
-import { useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Image,
-  Linking,
-  Modal,
-  StyleSheet,
-  View,
-} from "react-native";
-import * as WebBrowser from "expo-web-browser";
+import { FlatList, Image, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -19,77 +8,13 @@ import { Pressable } from "../components/Pressable";
 import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { formatIDR } from "../lib/format";
 import { useCart } from "../state/CartContext";
-import { useAuth } from "../state/AuthContext";
-import { createOrder } from "../lib/api/orders";
-import { WHATSAPP_NUMBER } from "../lib/mock-data";
 import type { RootStackParamList } from "../navigation/types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Cart">;
 
 export function CartScreen({ navigation }: Props) {
   const { items, remove, setQty, toggleSelected, selectAll, allSelected, selectedTotal } = useCart();
-  const { isLoggedIn } = useAuth();
   const insets = useSafeAreaInsets();
-  const [checkingOut, setCheckingOut] = useState(false);
-  const [methodSheetOpen, setMethodSheetOpen] = useState(false);
-
-  const sendToWhatsapp = (selectedItems: typeof items) => {
-    const lines = selectedItems
-      .map((i) => `- ${i.name} x${i.qty} (${formatIDR(i.price * i.qty)})`)
-      .join("\n");
-    const message = `Halo X-SHA, saya ingin memesan:\n${lines}\n\nTotal: ${formatIDR(selectedTotal)}`;
-    Linking.openURL(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`);
-  };
-
-  // "Manual" always ends up on WhatsApp regardless of what the order
-  // creation returns (the shopper explicitly chose to coordinate with
-  // staff directly, not to pay online) — "Otomatis" opens DOKU's payment
-  // page when the backend provides one, so staff no longer have to chase
-  // payment confirmation over chat for that order.
-  const checkout = async (method: "manual" | "automatic") => {
-    setMethodSheetOpen(false);
-    const selectedItems = items.filter((i) => i.selected);
-    if (selectedItems.length === 0) return;
-
-    setCheckingOut(true);
-    if (isLoggedIn) {
-      const result = await createOrder(
-        selectedItems.map((i) => ({ itemCode: i.id, itemName: i.name, qty: i.qty, rate: i.price })),
-      );
-      setCheckingOut(false);
-
-      if (method === "automatic") {
-        if (result.ok && result.paymentUrl) {
-          await WebBrowser.openBrowserAsync(result.paymentUrl);
-          Alert.alert(
-            "Pembayaran diproses",
-            `Pesanan ${result.orderId} dibuat. Cek status pembayarannya di Riwayat Transaksi.`,
-          );
-          return;
-        }
-        Alert.alert(
-          "Pembayaran otomatis belum tersedia",
-          result.ok
-            ? `Pesanan ${result.orderId} tetap tersimpan di akun Anda. Silakan gunakan Checkout Manual untuk saat ini.`
-            : "Coba gunakan Checkout Manual untuk saat ini.",
-        );
-        return;
-      }
-
-      if (result.ok) {
-        Alert.alert("Pesanan tercatat", `Pesanan ${result.orderId} tersimpan di akun X-SHA Anda.`);
-      } else if (result.reason === "erpnext_error") {
-        Alert.alert(
-          "Belum tercatat di sistem",
-          "Pesanan belum tersimpan di akun, tapi tetap bisa dikirim via WhatsApp.",
-        );
-      }
-    } else {
-      setCheckingOut(false);
-    }
-
-    sendToWhatsapp(selectedItems);
-  };
 
   if (items.length === 0) {
     return (
@@ -180,64 +105,14 @@ export function CartScreen({ navigation }: Props) {
           </View>
         </View>
         <Pressable
-          style={[styles.checkoutButton, (selectedTotal === 0 || checkingOut) && styles.checkoutButtonDisabled]}
-          onPress={() => setMethodSheetOpen(true)}
-          disabled={selectedTotal === 0 || checkingOut}
+          style={[styles.checkoutButton, selectedTotal === 0 && styles.checkoutButtonDisabled]}
+          onPress={() => navigation.navigate("Checkout")}
+          disabled={selectedTotal === 0}
         >
-          {checkingOut ? (
-            <ActivityIndicator color={colors.white} />
-          ) : (
-            <Text style={styles.checkoutText}>Checkout</Text>
-          )}
+          <Text style={styles.checkoutText}>Checkout</Text>
         </Pressable>
-        {!isLoggedIn && (
-          <Text style={styles.loginHint}>Masuk ke akun Anda agar pesanan tersimpan otomatis.</Text>
-        )}
       </View>
       <View style={{ height: insets.bottom, backgroundColor: colors.surface }} />
-
-      <Modal
-        visible={methodSheetOpen}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setMethodSheetOpen(false)}
-      >
-        <Pressable style={styles.backdrop} onPress={() => setMethodSheetOpen(false)}>
-          <Pressable style={styles.sheet} onPress={() => {}}>
-            <View style={styles.grabber} />
-            <Text style={styles.sheetTitle}>Pilih Cara Checkout</Text>
-            <Text style={styles.sheetHint}>Pilih cara Anda ingin menyelesaikan pesanan ini.</Text>
-
-            <Pressable style={styles.methodOption} onPress={() => checkout("automatic")}>
-              <View style={[styles.methodIconWrap, { backgroundColor: colors.primaryFixed }]}>
-                <Ionicons name="card-outline" size={20} color={colors.primary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.methodTitle}>Checkout Otomatis</Text>
-                <Text style={styles.methodDesc}>
-                  Bayar langsung online (transfer, e-wallet, kartu, dll). Pesanan diproses otomatis
-                  setelah pembayaran berhasil.
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.onSurfaceVariant} />
-            </Pressable>
-
-            <Pressable style={styles.methodOption} onPress={() => checkout("manual")}>
-              <View style={[styles.methodIconWrap, { backgroundColor: "#DCF3E4" }]}>
-                <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.methodTitle}>Checkout Manual</Text>
-                <Text style={styles.methodDesc}>
-                  Pesanan dikirim ke WhatsApp X-SHA, staf kami yang lanjutkan proses dan pembayarannya
-                  bersama Anda.
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.onSurfaceVariant} />
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
     </Screen>
   );
 }
@@ -333,52 +208,4 @@ const styles = StyleSheet.create({
   },
   checkoutButtonDisabled: { opacity: 0.4 },
   checkoutText: { color: colors.white, fontFamily: fonts.body.bold, fontSize: 15 },
-  loginHint: {
-    marginTop: spacing.sm,
-    textAlign: "center",
-    fontSize: 11,
-    color: colors.onSurfaceVariant,
-  },
-  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
-  sheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
-    padding: spacing.lg,
-    paddingBottom: spacing.xl,
-  },
-  grabber: {
-    alignSelf: "center",
-    width: 40,
-    height: 4,
-    borderRadius: radius.full,
-    backgroundColor: colors.border,
-    marginBottom: spacing.md,
-  },
-  sheetTitle: { fontSize: 16, fontFamily: fonts.display.bold, color: colors.onSurface, textAlign: "center" },
-  sheetHint: {
-    fontSize: 12,
-    color: colors.onSurfaceVariant,
-    textAlign: "center",
-    marginTop: 4,
-    marginBottom: spacing.lg,
-  },
-  methodOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    backgroundColor: colors.surfaceContainerLow,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  methodIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.full,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  methodTitle: { fontSize: 14, fontFamily: fonts.body.bold, color: colors.onSurface, marginBottom: 2 },
-  methodDesc: { fontSize: 11, color: colors.onSurfaceVariant, lineHeight: 15 },
 });
