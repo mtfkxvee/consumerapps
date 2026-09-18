@@ -70,6 +70,17 @@ export type OrderLine = {
   rate: number;
 };
 
+// "Pesanan" — an order placed via the app's own checkout (a Quotation),
+// distinct from Order above (a completed in-store Sales Invoice). Status
+// "Ordered" means payment was confirmed and it was converted to a Sales
+// Order; anything else is still awaiting payment/action.
+export type QuotationOrder = {
+  id: string;
+  date: string;
+  status: string;
+  total: number;
+};
+
 export type LoyaltyStatus = {
   points: number;
   level: string | null;

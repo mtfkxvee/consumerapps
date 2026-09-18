@@ -2,7 +2,7 @@ import * as Linking from "expo-linking";
 import { apiRequest, isApiConfigured } from "./client";
 import { mockOrders } from "../mock-data";
 import { getCurrentCustomer } from "./auth";
-import type { Order, OrderDetail, OrderLine } from "../types";
+import type { Order, OrderDetail, OrderLine, QuotationOrder } from "../types";
 
 export type CreateOrderResult =
   | { ok: true; orderId: string; paymentUrl?: string }
@@ -30,6 +30,26 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
   } catch {
     return null;
   }
+}
+
+// "Pesanan Saya" — the customer's own checkout-created orders (Quotations),
+// distinct from getMyOrders above (completed in-store Sales Invoices).
+// Shows whether payment is still pending so an unfinished checkout can be
+// resumed instead of started over.
+export async function getMyQuotations(): Promise<QuotationOrder[]> {
+  if (!isApiConfigured()) return [];
+  return apiRequest<QuotationOrder[]>("/api/mobile/quotations", { auth: true });
+}
+
+export async function resumePayment(
+  quotationId: string,
+): Promise<{ ok: true; paymentUrl: string } | { ok: false; message: string }> {
+  if (!isApiConfigured()) return { ok: false, message: "API belum dikonfigurasi." };
+  const returnUrl = Linking.createURL("payment-result");
+  return apiRequest<{ ok: true; paymentUrl: string } | { ok: false; message: string }>(
+    `/api/mobile/quotations/${encodeURIComponent(quotationId)}/resume-payment`,
+    { method: "POST", auth: true, body: { returnUrl } },
+  );
 }
 
 export async function createOrder(items: OrderLine[], note?: string): Promise<CreateOrderResult> {

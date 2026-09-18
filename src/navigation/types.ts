@@ -50,5 +50,7 @@ export type RootStackParamList = {
   };
   MemberBarcode: undefined;
   EditProfile: undefined;
+  Settings: undefined;
+  Orders: undefined;
   OrderDetail: { id: string };
 };

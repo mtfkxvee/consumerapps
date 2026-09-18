@@ -84,14 +84,24 @@ export function AccountScreen() {
           </View>
         </Pressable>
 
-        <Pressable
-          style={styles.editProfileRow}
-          onPress={() => navigation.navigate("EditProfile" as never)}
-        >
-          <Ionicons name="create-outline" size={16} color={colors.primary} />
-          <Text style={styles.editProfileText}>Ubah Data Diri</Text>
-          <Ionicons name="chevron-forward" size={16} color={colors.onSurfaceVariant} />
-        </Pressable>
+        <View style={styles.menuCard}>
+          <Pressable
+            style={styles.menuRow}
+            onPress={() => navigation.navigate("Orders" as never)}
+          >
+            <Ionicons name="receipt-outline" size={18} color={colors.primary} />
+            <Text style={styles.menuText}>Pesanan Saya</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.onSurfaceVariant} />
+          </Pressable>
+          <Pressable
+            style={[styles.menuRow, { borderTopWidth: 1, borderTopColor: colors.border }]}
+            onPress={() => navigation.navigate("Settings" as never)}
+          >
+            <Ionicons name="settings-outline" size={18} color={colors.primary} />
+            <Text style={styles.menuText}>Pengaturan</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.onSurfaceVariant} />
+          </Pressable>
+        </View>
 
         <View style={styles.pointsCard}>
           <Ionicons name="star" size={28} color={colors.primary} />
@@ -181,14 +191,10 @@ const styles = StyleSheet.create({
   memberName: { color: colors.onPrimary, fontSize: 20, fontFamily: fonts.display.extraBold, marginTop: 4 },
   memberFooter: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
   memberId: { color: colors.primaryFixed, fontSize: 12, letterSpacing: 1 },
-  editProfileRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
+  menuCard: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    overflow: "hidden",
     marginBottom: spacing.lg,
     shadowColor: colors.primary,
     shadowOpacity: 0.06,
@@ -196,7 +202,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 1,
   },
-  editProfileText: { flex: 1, fontSize: 13, fontFamily: fonts.body.semiBold, color: colors.onSurface },
+  menuRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+  },
+  menuText: { flex: 1, fontSize: 13, fontFamily: fonts.body.semiBold, color: colors.onSurface },
   pointsCard: {
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
