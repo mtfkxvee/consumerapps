@@ -135,7 +135,15 @@ export function PromoScreen({ navigation, route }: Props) {
         contentContainerStyle={[styles.list, { paddingBottom: tabBarSpace }]}
         columnWrapperStyle={{ gap: spacing.sm }}
         ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
-        refreshControl={<RefreshControl refreshing={isFetching && !isLoading} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching && !isLoading}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+            progressBackgroundColor={colors.surface}
+          />
+        }
         ListHeaderComponent={
           !ruleId && (banners?.length ?? 0) > 0 ? (
             <FlatList

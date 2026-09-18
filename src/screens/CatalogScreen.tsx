@@ -219,7 +219,13 @@ export function CatalogScreen({ navigation, route }: Props) {
         ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
         ListEmptyComponent={<Text style={styles.empty}>Tidak ada produk yang cocok.</Text>}
         refreshControl={
-          <RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} />
+          <RefreshControl
+            refreshing={isFetching && !isLoading}
+            onRefresh={() => refetch()}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+            progressBackgroundColor={colors.surface}
+          />
         }
         renderItem={({ item }) => (
           <View style={{ flex: 1 }}>

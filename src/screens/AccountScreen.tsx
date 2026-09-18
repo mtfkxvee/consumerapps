@@ -43,7 +43,15 @@ export function AccountScreen() {
     <Screen>
       <ScrollView
         contentContainerStyle={{ padding: spacing.md, paddingBottom: tabBarSpace }}
-        refreshControl={<RefreshControl refreshing={loyaltyFetching} onRefresh={() => refetchLoyalty()} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={loyaltyFetching}
+            onRefresh={() => refetchLoyalty()}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+            progressBackgroundColor={colors.surface}
+          />
+        }
       >
         <View style={styles.header}>
           <View>

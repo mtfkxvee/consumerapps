@@ -188,7 +188,13 @@ export function OrdersScreen() {
                     keyExtractor={(r) => r.id}
                     contentContainerStyle={styles.list}
                     refreshControl={
-                      <RefreshControl refreshing={isFetching && !isLoading} onRefresh={refetch} />
+                      <RefreshControl
+                        refreshing={isFetching && !isLoading}
+                        onRefresh={refetch}
+                        tintColor={colors.primary}
+                        colors={[colors.primary]}
+                        progressBackgroundColor={colors.surface}
+                      />
                     }
                     ListEmptyComponent={<Text style={styles.empty}>Tidak ada pesanan di tahap ini.</Text>}
                     renderItem={({ item: row }) => (

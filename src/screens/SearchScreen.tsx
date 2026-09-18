@@ -163,7 +163,13 @@ export function SearchScreen({ navigation, route }: Props) {
         columnWrapperStyle={{ gap: spacing.sm }}
         ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
         refreshControl={
-          <RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} />
+          <RefreshControl
+            refreshing={isFetching && !isLoading}
+            onRefresh={() => refetch()}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+            progressBackgroundColor={colors.surface}
+          />
         }
         ListHeaderComponent={
           <>
