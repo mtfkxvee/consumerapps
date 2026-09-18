@@ -1,10 +1,11 @@
+import * as Linking from "expo-linking";
 import { apiRequest, isApiConfigured } from "./client";
 import { mockOrders } from "../mock-data";
 import { getCurrentCustomer } from "./auth";
 import type { Order, OrderDetail, OrderLine } from "../types";
 
 export type CreateOrderResult =
-  | { ok: true; orderId: string }
+  | { ok: true; orderId: string; paymentUrl?: string }
   | { ok: false; reason: "not_configured" | "not_authenticated" | "erpnext_error"; message?: string };
 
 // Lets a real fetch failure surface as useQuery's isError instead of
@@ -35,9 +36,15 @@ export async function createOrder(items: OrderLine[], note?: string): Promise<Cr
   if (!isApiConfigured()) {
     return { ok: true, orderId: `DEMO-${Date.now()}` };
   }
+  // Same deep-link the server hands back once DOKU Checkout finishes, as
+  // the app's own return URL — same idea as the Google login flow, and
+  // for the same reason: Expo Go can't be reached via the app's real
+  // "xsha://" scheme, so this resolves to whatever actually works in
+  // however the app is currently running.
+  const returnUrl = Linking.createURL("payment-result");
   return apiRequest<CreateOrderResult>("/api/mobile/orders", {
     method: "POST",
     auth: true,
-    body: { items, note },
+    body: { items, note, returnUrl },
   });
 }

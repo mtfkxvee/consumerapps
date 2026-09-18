@@ -8,6 +8,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import * as WebBrowser from "expo-web-browser";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -35,13 +36,26 @@ export function CartScreen({ navigation }: Props) {
     if (selectedItems.length === 0) return;
 
     setCheckingOut(true);
-    // Mirrors the web cart: logged-in shoppers get the order recorded in
-    // ERPNext as a Quotation first (best-effort — WhatsApp still opens even
-    // if this fails, since staff can process the order from the chat too).
+    // Logged-in shoppers get the order recorded in ERPNext as a Quotation
+    // first, and — if DOKU is configured — a real payment page to pay it
+    // online right away. WhatsApp is now the fallback (payment not set up,
+    // recording failed, or the shopper isn't logged in), not the default:
+    // paying via DOKU means staff no longer have to chase payment
+    // confirmation over chat for that order.
     if (isLoggedIn) {
       const result = await createOrder(
         selectedItems.map((i) => ({ itemCode: i.id, itemName: i.name, qty: i.qty, rate: i.price })),
       );
+      setCheckingOut(false);
+
+      if (result.ok && result.paymentUrl) {
+        await WebBrowser.openBrowserAsync(result.paymentUrl);
+        Alert.alert(
+          "Pembayaran diproses",
+          `Pesanan ${result.orderId} dibuat. Cek status pembayarannya di Riwayat Transaksi.`,
+        );
+        return;
+      }
       if (result.ok) {
         Alert.alert("Pesanan tercatat", `Pesanan ${result.orderId} tersimpan di akun X-SHA Anda.`);
       } else if (result.reason === "erpnext_error") {
@@ -50,8 +64,9 @@ export function CartScreen({ navigation }: Props) {
           "Pesanan belum tersimpan di akun, tapi tetap bisa dikirim via WhatsApp.",
         );
       }
+    } else {
+      setCheckingOut(false);
     }
-    setCheckingOut(false);
 
     const lines = selectedItems
       .map((i) => `- ${i.name} x${i.qty} (${formatIDR(i.price * i.qty)})`)
