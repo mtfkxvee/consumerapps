@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { ActivityIndicator, FlatList, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import PagerView from "react-native-pager-view";
 import * as WebBrowser from "expo-web-browser";
 import { useNavigation } from "@react-navigation/native";
@@ -115,9 +115,17 @@ export function OrdersScreen() {
 
   const handleResume = async (id: string) => {
     setResumingId(id);
-    const result = await resumePayment(id);
+    const result = await resumePayment(id).catch(
+      (): { ok: false; message: string } => ({
+        ok: false,
+        message: "Tidak bisa terhubung ke server. Periksa koneksi lalu coba lagi.",
+      }),
+    );
     setResumingId(null);
-    if (!result.ok) return;
+    if (!result.ok) {
+      Alert.alert("Pembayaran belum bisa dilanjutkan", result.message);
+      return;
+    }
     await WebBrowser.openBrowserAsync(result.paymentUrl);
     refetch();
     (navigation.navigate as (name: string, params?: object) => void)("PaymentResult", { orderId: id });
