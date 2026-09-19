@@ -54,4 +54,5 @@ export type RootStackParamList = {
   Orders: undefined;
   OrderDetail: { id: string };
   Notifications: undefined;
+  PaymentResult: { orderId: string };
 };

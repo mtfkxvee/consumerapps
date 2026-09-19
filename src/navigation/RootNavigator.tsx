@@ -17,6 +17,7 @@ import { SettingsScreen } from "../screens/SettingsScreen";
 import { OrdersScreen } from "../screens/OrdersScreen";
 import { OrderDetailScreen } from "../screens/OrderDetailScreen";
 import { NotificationsScreen } from "../screens/NotificationsScreen";
+import { PaymentResultScreen } from "../screens/PaymentResultScreen";
 import { FloatingTabBar } from "./FloatingTabBar";
 import { useAuth } from "../state/AuthContext";
 import type {
@@ -151,6 +152,11 @@ export function RootNavigator() {
           name="Notifications"
           component={NotificationsScreen}
           options={{ animation: "slide_from_right" }}
+        />
+        <RootStack.Screen
+          name="PaymentResult"
+          component={PaymentResultScreen}
+          options={{ animation: "fade", gestureEnabled: false }}
         />
       </RootStack.Navigator>
     </NavigationContainer>

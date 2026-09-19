@@ -120,6 +120,7 @@ export function OrdersScreen() {
     if (!result.ok) return;
     await WebBrowser.openBrowserAsync(result.paymentUrl);
     refetch();
+    (navigation.navigate as (name: string, params?: object) => void)("PaymentResult", { orderId: id });
   };
 
   return (

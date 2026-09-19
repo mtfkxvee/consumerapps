@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import * as WebBrowser from "expo-web-browser";
-import { useNavigation } from "@react-navigation/native";
+import { StackActions, useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Screen } from "../components/Screen";
@@ -130,11 +130,7 @@ export function CheckoutScreen() {
         if (result.ok && result.paymentUrl) {
           clear();
           await WebBrowser.openBrowserAsync(result.paymentUrl);
-          Alert.alert(
-            "Pembayaran diproses",
-            `Pesanan ${result.orderId} dibuat. Cek status pembayarannya di Riwayat Transaksi.`,
-          );
-          navigation.goBack();
+          navigation.dispatch(StackActions.replace("PaymentResult", { orderId: result.orderId }));
           return;
         }
         Alert.alert(
