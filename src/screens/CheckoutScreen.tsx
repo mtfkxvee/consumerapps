@@ -117,6 +117,27 @@ export function CheckoutScreen() {
     const outletNote = selectedOutlet ? `\nOutlet: ${selectedOutlet.name}` : "";
     const note = `${fulfillmentNote}${outletNote}\nKontak: ${contactNumber.trim()}`;
 
+    // Automatic payment needs an account (the order is recorded against the
+    // customer in ERPNext) — a guest would otherwise silently fall through
+    // to the WhatsApp handoff below despite choosing "Checkout Otomatis".
+    if (!isLoggedIn && paymentMethod === "automatic") {
+      Alert.alert(
+        "Masuk untuk bayar online",
+        "Checkout Otomatis membutuhkan akun X-SHA. Masuk dulu, atau pilih Checkout Manual untuk memesan lewat WhatsApp.",
+        [
+          { text: "Batal", style: "cancel" },
+          {
+            text: "Masuk",
+            onPress: () =>
+              (navigation.navigate as (name: string, params?: object) => void)("MainTabs", {
+                screen: "AccountTab",
+              }),
+          },
+        ],
+      );
+      return;
+    }
+
     setSubmitting(true);
 
     if (isLoggedIn) {
