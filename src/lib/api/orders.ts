@@ -5,7 +5,7 @@ import { getCurrentCustomer } from "./auth";
 import type { Order, OrderDetail, OrderLine, Pesanan } from "../types";
 
 export type CreateOrderResult =
-  | { ok: true; orderId: string; paymentUrl?: string }
+  | { ok: true; orderId: string; paymentUrl?: string; paymentError?: string }
   | { ok: false; reason: "not_configured" | "not_authenticated" | "erpnext_error"; message?: string };
 
 // Lets a real fetch failure surface as useQuery's isError instead of

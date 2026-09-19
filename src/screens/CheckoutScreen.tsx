@@ -157,7 +157,7 @@ export function CheckoutScreen() {
         if (result.ok) {
           Alert.alert(
             "Pembayaran otomatis belum tersedia",
-            `Pesanan ${result.orderId} tetap tersimpan di akun Anda. Buka Pesanan Saya untuk melanjutkan pembayaran, atau gunakan Checkout Manual.`,
+            `Pesanan ${result.orderId} tersimpan di akun Anda, tapi link pembayaran belum bisa dibuat${result.paymentError ? `:\n${result.paymentError}` : "."}\n\nBuka Pesanan Saya untuk mencoba lagi, atau gunakan Checkout Manual.`,
           );
         } else if (result.reason === "not_authenticated") {
           Alert.alert(
