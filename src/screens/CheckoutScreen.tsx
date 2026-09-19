@@ -154,12 +154,22 @@ export function CheckoutScreen() {
           navigation.dispatch(StackActions.replace("PaymentResult", { orderId: result.orderId }));
           return;
         }
-        Alert.alert(
-          "Pembayaran otomatis belum tersedia",
-          result.ok
-            ? `Pesanan ${result.orderId} tetap tersimpan di akun Anda. Silakan gunakan Checkout Manual untuk saat ini.`
-            : "Coba gunakan Checkout Manual untuk saat ini.",
-        );
+        if (result.ok) {
+          Alert.alert(
+            "Pembayaran otomatis belum tersedia",
+            `Pesanan ${result.orderId} tetap tersimpan di akun Anda. Buka Pesanan Saya untuk melanjutkan pembayaran, atau gunakan Checkout Manual.`,
+          );
+        } else if (result.reason === "not_authenticated") {
+          Alert.alert(
+            "Sesi berakhir",
+            "Sesi login Anda tidak lagi valid. Keluar lalu masuk kembali dari tab Akun, kemudian coba lagi.",
+          );
+        } else {
+          Alert.alert(
+            "Pesanan gagal dibuat",
+            `${result.message ?? "Terjadi kesalahan di server."}\n\nCoba lagi, atau gunakan Checkout Manual.`,
+          );
+        }
         return;
       }
 
