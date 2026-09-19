@@ -55,4 +55,5 @@ export type RootStackParamList = {
   OrderDetail: { id: string };
   Notifications: undefined;
   PaymentResult: { orderId: string };
+  PaymentWebView: { orderId: string; paymentUrl: string };
 };

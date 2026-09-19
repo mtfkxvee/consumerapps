@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, TextInput, View } from "react-native";
-import * as WebBrowser from "expo-web-browser";
 import { StackActions, useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -150,8 +149,9 @@ export function CheckoutScreen() {
       if (paymentMethod === "automatic") {
         if (result.ok && result.paymentUrl) {
           clear();
-          await WebBrowser.openBrowserAsync(result.paymentUrl);
-          navigation.dispatch(StackActions.replace("PaymentResult", { orderId: result.orderId }));
+          navigation.dispatch(
+            StackActions.replace("PaymentWebView", { orderId: result.orderId, paymentUrl: result.paymentUrl }),
+          );
           return;
         }
         if (result.ok) {

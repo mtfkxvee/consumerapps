@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
-import * as WebBrowser from "expo-web-browser";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { StackActions, useNavigation, useRoute } from "@react-navigation/native";
 import { useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { Screen } from "../components/Screen";
@@ -63,8 +62,7 @@ export function PaymentResultScreen() {
     const result = await resumePayment(orderId);
     setRetrying(false);
     if (!result.ok) return;
-    await WebBrowser.openBrowserAsync(result.paymentUrl);
-    check();
+    navigation.dispatch(StackActions.replace("PaymentWebView", { orderId, paymentUrl: result.paymentUrl }));
   };
 
   const goToOrders = () => {

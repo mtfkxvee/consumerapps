@@ -1,7 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import PagerView from "react-native-pager-view";
-import * as WebBrowser from "expo-web-browser";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
@@ -126,9 +125,10 @@ export function OrdersScreen() {
       Alert.alert("Pembayaran belum bisa dilanjutkan", result.message);
       return;
     }
-    await WebBrowser.openBrowserAsync(result.paymentUrl);
-    refetch();
-    (navigation.navigate as (name: string, params?: object) => void)("PaymentResult", { orderId: id });
+    (navigation.navigate as (name: string, params?: object) => void)("PaymentWebView", {
+      orderId: id,
+      paymentUrl: result.paymentUrl,
+    });
   };
 
   return (

@@ -18,6 +18,7 @@ import { OrdersScreen } from "../screens/OrdersScreen";
 import { OrderDetailScreen } from "../screens/OrderDetailScreen";
 import { NotificationsScreen } from "../screens/NotificationsScreen";
 import { PaymentResultScreen } from "../screens/PaymentResultScreen";
+import { PaymentWebViewScreen } from "../screens/PaymentWebViewScreen";
 import { FloatingTabBar } from "./FloatingTabBar";
 import { useAuth } from "../state/AuthContext";
 import type {
@@ -157,6 +158,11 @@ export function RootNavigator() {
           name="PaymentResult"
           component={PaymentResultScreen}
           options={{ animation: "fade", gestureEnabled: false }}
+        />
+        <RootStack.Screen
+          name="PaymentWebView"
+          component={PaymentWebViewScreen}
+          options={{ animation: "slide_from_bottom", gestureEnabled: false }}
         />
       </RootStack.Navigator>
     </NavigationContainer>
