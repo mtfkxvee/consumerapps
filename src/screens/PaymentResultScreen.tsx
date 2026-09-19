@@ -13,8 +13,11 @@ import { getQuotationDetail, resumePayment } from "../lib/api/orders";
 
 type Phase = "checking" | "paid" | "pending";
 
-const POLL_INTERVAL_MS = 3000;
-const POLL_ATTEMPTS = 10;
+// Kept short on purpose: a Virtual Account / store payment is usually made
+// in the bank app *after* the DOKU page closes, so a long wait here mostly
+// just delays showing the (correct) "waiting for payment" state.
+const POLL_INTERVAL_MS = 2500;
+const POLL_ATTEMPTS = 5;
 
 // DOKU confirms payment to our server via webhook, which converts the
 // Quotation to a Sales Order (status "Ordered") — so after the browser
@@ -79,6 +82,9 @@ export function PaymentResultScreen() {
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={styles.title}>Memeriksa pembayaran…</Text>
             <Text style={styles.subtitle}>Mohon tunggu, kami sedang mengonfirmasi pembayaran Anda.</Text>
+            <Pressable style={styles.linkButton} onPress={goToOrders}>
+              <Text style={styles.linkText}>Lewati, lihat Pesanan Saya</Text>
+            </Pressable>
           </>
         )}
 
