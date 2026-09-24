@@ -3,7 +3,7 @@ import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useQuery } from "@tanstack/react-query";
 import { getOutlets } from "../lib/api/outlets";
-import { distanceKm } from "../lib/geo";
+import { getRoadDistancesKm } from "../lib/api/routing";
 import type { Outlet } from "../lib/types";
 
 export type OutletWithDistance = Outlet & { distanceKm: number | null };
@@ -34,6 +34,10 @@ export function OutletProvider({ children }: { children: ReactNode }) {
 
   const [outletCode, setOutletCodeState] = useState("");
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  // Real road distance (km) per outlet code, from the server's OSRM proxy —
+  // keyed by code since it resolves asynchronously, after `coords` and the
+  // outlet list are both known.
+  const [roadDistances, setRoadDistances] = useState<Record<string, number>>({});
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
@@ -62,6 +66,32 @@ export function OutletProvider({ children }: { children: ReactNode }) {
     })();
   }, []);
 
+  useEffect(() => {
+    if (!coords || !outlets?.length) return;
+    const withPins = outlets.filter(
+      (o): o is Outlet & { latitude: number; longitude: number } =>
+        Boolean(o.warehouse) && o.latitude != null && o.longitude != null,
+    );
+    if (withPins.length === 0) return;
+
+    let cancelled = false;
+    getRoadDistancesKm(
+      coords,
+      withPins.map((o) => ({ lat: o.latitude, lng: o.longitude })),
+    ).then((distances) => {
+      if (cancelled) return;
+      const next: Record<string, number> = {};
+      withPins.forEach((o, i) => {
+        const km = distances[i];
+        if (km != null) next[o.code] = km;
+      });
+      setRoadDistances(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [coords, outlets]);
+
   const setOutletCode = (code: string) => {
     setOutletCodeState(code);
     if (code) AsyncStorage.setItem(STORAGE_KEY, code).catch(() => {});
@@ -72,16 +102,11 @@ export function OutletProvider({ children }: { children: ReactNode }) {
     // Only outlets linked to a warehouse can be used for stock filtering.
     const withDistance: OutletWithDistance[] = (outlets ?? [])
       .filter((o) => o.warehouse)
-      .map((o) => ({
-        ...o,
-        distanceKm:
-          coords && o.latitude != null && o.longitude != null
-            ? distanceKm(coords, { lat: o.latitude, lng: o.longitude })
-            : null,
-      }));
+      .map((o) => ({ ...o, distanceKm: roadDistances[o.code] ?? null }));
 
-    // Nearest first when we have a distance; outlets without one (no pin,
-    // or location unknown) keep the server's order, after the sorted ones.
+    // Nearest first once road distances have resolved; outlets without one
+    // (no pin, not yet resolved, or unroutable) keep the server's order,
+    // after the sorted ones.
     const list = coords
       ? [...withDistance].sort((a, b) => {
           if (a.distanceKm == null) return b.distanceKm == null ? 0 : 1;
@@ -96,7 +121,7 @@ export function OutletProvider({ children }: { children: ReactNode }) {
       selectedOutlet: list.find((o) => o.code === outletCode) ?? null,
       setOutletCode,
     };
-  }, [outlets, outletCode, coords]);
+  }, [outlets, outletCode, coords, roadDistances]);
 
   return <OutletContext.Provider value={value}>{children}</OutletContext.Provider>;
 }

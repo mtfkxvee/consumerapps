@@ -12,7 +12,7 @@ import { formatIDR } from "../lib/format";
 import { useCart } from "../state/CartContext";
 import { useAuth } from "../state/AuthContext";
 import { useOutlet } from "../state/OutletContext";
-import { distanceKm } from "../lib/geo";
+import { getRoadDistancesKm } from "../lib/api/routing";
 import { createOrder } from "../lib/api/orders";
 import { getMyAddress } from "../lib/api/profile";
 import { WHATSAPP_NUMBER } from "../lib/mock-data";
@@ -35,16 +35,28 @@ export function CheckoutScreen() {
   const [city, setCity] = useState("");
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
 
-  // Distance shown next to the selected outlet — against the delivery pin
-  // when one's been set (more accurate for a "diantar" order), otherwise
-  // against the customer's own current location (the same figure the
-  // outlet picker already sorts by).
-  const outletDistanceKm =
-    selectedOutlet?.latitude != null && selectedOutlet?.longitude != null
-      ? fulfillment === "delivery" && coords
-        ? distanceKm(coords, { lat: selectedOutlet.latitude, lng: selectedOutlet.longitude })
-        : selectedOutlet.distanceKm
-      : null;
+  // Distance shown next to the selected outlet — real road distance (via
+  // OSRM) against the delivery pin when one's been set (more accurate for
+  // a "diantar" order), otherwise the customer's own current location, the
+  // same road-distance figure the outlet picker already sorts by.
+  const [pinDistanceKm, setPinDistanceKm] = useState<number | null>(null);
+  useEffect(() => {
+    if (fulfillment !== "delivery" || !coords || selectedOutlet?.latitude == null || selectedOutlet?.longitude == null) {
+      setPinDistanceKm(null);
+      return;
+    }
+    let cancelled = false;
+    getRoadDistancesKm(coords, [{ lat: selectedOutlet.latitude, lng: selectedOutlet.longitude }]).then(
+      (distances) => {
+        if (!cancelled) setPinDistanceKm(distances[0] ?? null);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [fulfillment, coords, selectedOutlet?.code, selectedOutlet?.latitude, selectedOutlet?.longitude]);
+
+  const outletDistanceKm = fulfillment === "delivery" && coords ? pinDistanceKm : (selectedOutlet?.distanceKm ?? null);
   const [registeredAddress, setRegisteredAddress] = useState<{
     line1: string;
     city: string;
