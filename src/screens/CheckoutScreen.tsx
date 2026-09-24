@@ -12,6 +12,7 @@ import { formatIDR } from "../lib/format";
 import { useCart } from "../state/CartContext";
 import { useAuth } from "../state/AuthContext";
 import { useOutlet } from "../state/OutletContext";
+import { distanceKm } from "../lib/geo";
 import { createOrder } from "../lib/api/orders";
 import { getMyAddress } from "../lib/api/profile";
 import { WHATSAPP_NUMBER } from "../lib/mock-data";
@@ -33,6 +34,17 @@ export function CheckoutScreen() {
   const [addressLine1, setAddressLine1] = useState("");
   const [city, setCity] = useState("");
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Distance shown next to the selected outlet — against the delivery pin
+  // when one's been set (more accurate for a "diantar" order), otherwise
+  // against the customer's own current location (the same figure the
+  // outlet picker already sorts by).
+  const outletDistanceKm =
+    selectedOutlet?.latitude != null && selectedOutlet?.longitude != null
+      ? fulfillment === "delivery" && coords
+        ? distanceKm(coords, { lat: selectedOutlet.latitude, lng: selectedOutlet.longitude })
+        : selectedOutlet.distanceKm
+      : null;
   const [registeredAddress, setRegisteredAddress] = useState<{
     line1: string;
     city: string;
@@ -206,9 +218,18 @@ export function CheckoutScreen() {
         <Text style={styles.sectionTitle}>Outlet</Text>
         <View style={styles.outletCard}>
           <Ionicons name="storefront-outline" size={18} color={colors.primary} />
-          <Text style={styles.outletText} numberOfLines={1}>
-            {selectedOutlet ? selectedOutlet.name : "Belum ada outlet dipilih"}
-          </Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.outletText} numberOfLines={1}>
+              {selectedOutlet ? selectedOutlet.name : "Belum ada outlet dipilih"}
+            </Text>
+            {outletDistanceKm != null && (
+              <Text style={styles.outletDistance}>
+                {fulfillment === "delivery" && coords
+                  ? `${outletDistanceKm.toFixed(1)} km dari alamat pengiriman`
+                  : `${outletDistanceKm.toFixed(1)} km dari lokasi Anda`}
+              </Text>
+            )}
+          </View>
         </View>
 
         <Text style={styles.sectionTitle}>Ringkasan Pesanan</Text>
@@ -473,7 +494,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,
   },
-  outletText: { flex: 1, fontSize: 13, fontFamily: fonts.body.semiBold, color: colors.onSurface },
+  outletText: { fontSize: 13, fontFamily: fonts.body.semiBold, color: colors.onSurface },
+  outletDistance: { fontSize: 11, color: colors.onSurfaceVariant, marginTop: 2 },
   itemRow: {
     flexDirection: "row",
     justifyContent: "space-between",
