@@ -62,7 +62,12 @@ export async function resumePayment(
   );
 }
 
-export async function createOrder(items: OrderLine[], note?: string): Promise<CreateOrderResult> {
+export async function createOrder(
+  items: OrderLine[],
+  note?: string,
+  outletCode?: string,
+  coords?: { latitude: number; longitude: number },
+): Promise<CreateOrderResult> {
   if (!isApiConfigured()) {
     return { ok: true, orderId: `DEMO-${Date.now()}` };
   }
@@ -75,6 +80,13 @@ export async function createOrder(items: OrderLine[], note?: string): Promise<Cr
   return apiRequest<CreateOrderResult>("/api/mobile/orders", {
     method: "POST",
     auth: true,
-    body: { items, note, returnUrl },
+    body: {
+      items,
+      note,
+      returnUrl,
+      outletCode,
+      latitude: coords?.latitude,
+      longitude: coords?.longitude,
+    },
   });
 }

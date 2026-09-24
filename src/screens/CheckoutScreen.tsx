@@ -143,6 +143,8 @@ export function CheckoutScreen() {
       const result = await createOrder(
         selectedItems.map((i) => ({ itemCode: i.id, itemName: i.name, qty: i.qty, rate: i.price })),
         note,
+        selectedOutlet?.code,
+        fulfillment === "delivery" && coords ? { latitude: coords.lat, longitude: coords.lng } : undefined,
       );
       setSubmitting(false);
 
