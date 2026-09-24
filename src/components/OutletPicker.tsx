@@ -54,7 +54,7 @@ export function OutletPicker() {
                 {outletCode === "" && <Ionicons name="checkmark" size={18} color={colors.primary} />}
               </Pressable>
 
-              {outlets.map((o) => (
+              {outlets.map((o, index) => (
                 <Pressable
                   key={o.code}
                   style={styles.option}
@@ -64,10 +64,23 @@ export function OutletPicker() {
                   }}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.optionText, outletCode === o.code && styles.optionTextActive]}>
-                      {o.name}
-                    </Text>
-                    {o.city && <Text style={styles.optionCity}>{o.city}</Text>}
+                    <View style={styles.optionNameRow}>
+                      <Text style={[styles.optionText, outletCode === o.code && styles.optionTextActive]}>
+                        {o.name}
+                      </Text>
+                      {index === 0 && o.distanceKm != null && (
+                        <View style={styles.nearestBadge}>
+                          <Text style={styles.nearestBadgeText}>Terdekat</Text>
+                        </View>
+                      )}
+                    </View>
+                    {(o.city || o.distanceKm != null) && (
+                      <Text style={styles.optionCity}>
+                        {[o.city, o.distanceKm != null ? `${o.distanceKm.toFixed(1)} km` : null]
+                          .filter(Boolean)
+                          .join(" • ")}
+                      </Text>
+                    )}
                   </View>
                   {outletCode === o.code && <Ionicons name="checkmark" size={18} color={colors.primary} />}
                 </Pressable>
@@ -113,7 +126,15 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
+  optionNameRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
   optionText: { fontSize: 14, color: colors.onSurface },
   optionTextActive: { fontFamily: fonts.body.bold, color: colors.primary },
   optionCity: { fontSize: 11, color: colors.onSurfaceVariant, marginTop: 2 },
+  nearestBadge: {
+    backgroundColor: colors.primaryFixed,
+    borderRadius: radius.full,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
+  nearestBadgeText: { fontSize: 9, fontFamily: fonts.body.bold, color: colors.primary },
 });

@@ -27,6 +27,10 @@ export type Outlet = {
   city: string | null;
   territory: string | null;
   whatsapp: string;
+  // Null when the outlet has no pin set in ERPNext yet — used to recommend
+  // the nearest outlet to the customer's own GPS position.
+  latitude: number | null;
+  longitude: number | null;
   warehouse: string | null;
   image: string | null;
   description: string | null;
