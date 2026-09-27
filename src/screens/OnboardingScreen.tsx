@@ -6,34 +6,37 @@ import { Ionicons } from "@expo/vector-icons";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
 import { getBackdropScale, OnboardingBackdrop, BACKDROP_UNIT } from "../components/onboarding/OnboardingBackdrop";
-import { colors, fonts, radius, spacing, typography } from "../theme/colors";
+import { colors, fonts, radius, spacing } from "../theme/colors";
 
 type Slide = {
   key: string;
   image: number;
+  // The transparent PNGs are trimmed tight to their own content, and each
+  // one has a different natural aspect ratio (they're cropped illustrations,
+  // not a uniform square anymore) - resizeMode="contain" needs this to size
+  // the box without distorting or letterboxing oddly.
+  aspectRatio: number;
   title: string;
-  subtitle: string;
 };
 
 const SLIDES: Slide[] = [
   {
     key: "nearest-store",
-    image: require("../../assets/onboarding/nearest-store.jpg"),
+    image: require("../../assets/onboarding/nearest-store.png"),
+    aspectRatio: 441 / 385,
     title: "Temukan Toko X-SHA Terdekat",
-    subtitle:
-      "Temukan toko kelontong, minimarket, dan supermarket X-SHA terdekat untuk memenuhi kebutuhan harianmu dengan mudah.",
   },
   {
     key: "shop-needs",
-    image: require("../../assets/onboarding/shop-needs.jpg"),
+    image: require("../../assets/onboarding/shop-needs.png"),
+    aspectRatio: 467 / 435,
     title: "Pilih Kebutuhan Harianmu",
-    subtitle: "Belanja sembako, perlengkapan rumah tangga, hingga camilan favorit dengan diskon dan promo spesial setiap hari.",
   },
   {
     key: "fast-delivery",
-    image: require("../../assets/onboarding/fast-delivery.jpg"),
+    image: require("../../assets/onboarding/fast-delivery.png"),
+    aspectRatio: 418 / 369,
     title: "Pengantaran Cepat ke Rumah",
-    subtitle: "Pesanan kebutuhan pokok dan belanjaanmu langsung diantar kilat sampai depan pintu, aman dan praktis.",
   },
 ];
 
@@ -210,13 +213,14 @@ function OnboardingSlide({
   });
   return (
     <View style={styles.slide}>
-      <Animated.View style={[styles.illustrationDisc, { opacity, transform: [{ translateY }] }]}>
-        <Image source={slide.image} resizeMode="cover" style={styles.illustrationImage} />
+      <Animated.View
+        style={[styles.illustrationWrap, { aspectRatio: slide.aspectRatio, opacity, transform: [{ translateY }] }]}
+      >
+        <Image source={slide.image} resizeMode="contain" style={styles.illustrationImage} />
       </Animated.View>
 
       <Animated.View style={{ opacity, transform: [{ translateY }] }}>
         <Text style={styles.title}>{slide.title}</Text>
-        <Text style={styles.subtitle}>{slide.subtitle}</Text>
       </Animated.View>
     </View>
   );
@@ -245,35 +249,27 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: spacing.xl,
   },
-  // The source photos are square with the illustration centered inside a
-  // soft blob that already fills most of the frame — clipping to a circle
-  // (rather than showing the square with visible white corners) is what
-  // makes it read as one clean "disc", same as the earlier SVG version.
-  illustrationDisc: {
-    width: 224,
-    height: 224,
-    borderRadius: radius.full,
-    overflow: "hidden",
+  // No card, no circle, no background fill behind it anymore - the PNGs are
+  // trimmed transparent cutouts, so they just sit directly on the page's
+  // own violet background rather than inside a separate shape.
+  illustrationWrap: {
+    width: "78%",
     marginBottom: spacing.xl,
-    backgroundColor: colors.primaryFixed,
   },
   illustrationImage: {
     width: "100%",
     height: "100%",
   },
+  // Bigger, bolder, tighter than the rest of the app's headline scale -
+  // matches the reference's oversized display type instead of the smaller
+  // headlineLg token used elsewhere.
   title: {
-    ...typography.headlineLg,
+    fontSize: 34,
+    lineHeight: 38,
+    fontFamily: fonts.display.extraBold,
+    letterSpacing: -0.5,
     color: colors.onPrimary,
     textAlign: "center",
-    marginBottom: spacing.sm,
-  },
-  subtitle: {
-    fontSize: 14,
-    fontFamily: fonts.body.regular,
-    color: colors.primaryFixed,
-    textAlign: "center",
-    lineHeight: 21,
-    opacity: 0.9,
   },
   progressTrack: {
     flex: 1,
