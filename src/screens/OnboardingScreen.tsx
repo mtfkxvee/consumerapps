@@ -23,19 +23,19 @@ const SLIDES: Slide[] = [
   {
     key: "nearest-store",
     image: require("../../assets/onboarding/nearest-store.png"),
-    aspectRatio: 441 / 385,
+    aspectRatio: 446 / 473,
     title: "Temukan Toko X-SHA Terdekat",
   },
   {
     key: "shop-needs",
     image: require("../../assets/onboarding/shop-needs.png"),
-    aspectRatio: 467 / 435,
+    aspectRatio: 469 / 440,
     title: "Pilih Kebutuhan Harianmu",
   },
   {
     key: "fast-delivery",
     image: require("../../assets/onboarding/fast-delivery.png"),
-    aspectRatio: 418 / 369,
+    aspectRatio: 420 / 373,
     title: "Pengantaran Cepat ke Rumah",
   },
 ];
