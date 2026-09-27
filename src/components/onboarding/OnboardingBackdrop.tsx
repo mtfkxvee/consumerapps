@@ -2,16 +2,22 @@ import { Animated, StyleSheet } from "react-native";
 import Svg, { Circle, G, Path, Rect } from "react-native-svg";
 import { colors } from "../../theme/colors";
 
-// One wide virtual canvas (400 units per slide) panned by `translateX`
-// (driven by real swipe position, see OnboardingScreen) so the background
-// visibly slides between slides, while the page's own solid color stays
-// constant.
+// Ported closely from a reference composition the user supplied (waves,
+// a dripping canopy, per-screen spotlight halos, one continuous dashed
+// route threading through with anchor rings at the seams, plus per-screen
+// FMCG/fashion icon clusters) — recolored to X-SHA's own palette rather
+// than the reference's literal hex values, and using the icon shapes
+// already designed/checked earlier in illustrations.tsx and the previous
+// pass here, rather than re-deriving new ones.
 //
-// Kept deliberately simple and on-theme after two rounds of feedback: the
-// first pass (abstract journey line + waypoint dots + multiple glow orbs)
-// was flagged as "too busy" — dropped in favor of a sparse scatter of
-// outlined retail/FMCG/fashion icons (shopping bag, t-shirt, bottle, price
-// tag, basket) at low opacity, plus the same minimal top drips as before.
+// Coordinate system matches the reference 1:1 (640 units per slide, 1080
+// tall) so its relative composition (wave curves, spotlight centers, route
+// path) ports over correctly regardless of the actual device size — the
+// Svg stretches this virtual canvas to fit via preserveAspectRatio="none",
+// same mechanism as before.
+const UNIT = 640;
+const VIEW_HEIGHT = 1080;
+
 export function OnboardingBackdrop({
   slideCount,
   screenWidth,
@@ -21,8 +27,7 @@ export function OnboardingBackdrop({
   screenWidth: number;
   translateX: Animated.AnimatedInterpolation<number>;
 }) {
-  const unit = 400; // virtual units per slide, independent of actual device width
-  const totalUnits = unit * slideCount;
+  const totalUnits = UNIT * slideCount;
   const totalWidth = screenWidth * slideCount;
 
   return (
@@ -30,13 +35,73 @@ export function OnboardingBackdrop({
       style={[styles.container, { width: totalWidth, transform: [{ translateX }] }]}
       pointerEvents="none"
     >
-      <Svg width={totalWidth} height="100%" viewBox={`0 0 ${totalUnits} 800`} preserveAspectRatio="none">
-        {buildDrips(totalUnits).map((d, i) => (
-          <Rect key={i} x={d.x} y={0} width={d.w} height={d.h} rx={d.w / 2} fill={colors.surface} opacity={d.opacity} />
-        ))}
+      <Svg width={totalWidth} height="100%" viewBox={`0 0 ${totalUnits} ${VIEW_HEIGHT}`} preserveAspectRatio="none">
+        {/* dripping canopy along the top edge */}
+        <Path
+          d="M 0,0 L 200,0 C 220,160 300,220 350,160 C 380,110 430,0 500,0 L 780,0 C 820,180 910,240 980,170 C 1030,120 1060,0 1180,0 L 1460,0 C 1510,170 1590,230 1670,170 C 1720,130 1760,0 1920,0 L 1920,240 C 1800,320 1660,280 1540,340 C 1400,420 1240,310 1100,380 C 920,460 740,310 570,360 C 380,420 200,290 0,350 Z"
+          fill={colors.primaryContainer}
+          opacity={0.22}
+        />
 
-        {THEME_ICONS.filter((ic) => ic.x < totalUnits + 60).map((ic, i) => (
+        {/* two overlapping waves along the bottom edge */}
+        <Path d="M 0,720 Q 320,810 640,700 T 1280,670 T 1920,740 L 1920,1080 L 0,1080 Z" fill={colors.onSurface} opacity={0.16} />
+        <Path d="M 0,840 Q 320,750 640,820 T 1280,810 T 1920,790 L 1920,1080 L 0,1080 Z" fill={colors.primaryContainer} opacity={0.45} />
+
+        {/* soft spotlight halo behind where each slide's illustration sits */}
+        {Array.from({ length: slideCount }).map((_, i) => {
+          const cx = 320 + i * UNIT;
+          return (
+            <G key={`spot-${i}`}>
+              <Circle cx={cx} cy={460} r={190} fill={colors.surface} opacity={0.08} />
+              <Circle cx={cx} cy={460} r={160} fill={colors.surface} opacity={0.06} />
+            </G>
+          );
+        })}
+
+        {/* one continuous dashed route threading through every slide */}
+        <Path
+          d="M 140,520 C 300,600 470,610 640,560 C 810,510 1020,650 1280,540 C 1450,470 1620,560 1780,480"
+          stroke={colors.tertiaryContainer}
+          strokeWidth={5}
+          strokeDasharray="14 14"
+          strokeLinecap="round"
+          fill="none"
+          opacity={0.85}
+        />
+        <Path
+          d="M 100,430 C 320,320 460,400 640,380 C 840,360 1060,290 1280,370 C 1470,440 1670,330 1840,400"
+          stroke={colors.surface}
+          strokeWidth={3}
+          strokeDasharray="10 10"
+          strokeLinecap="round"
+          fill="none"
+          opacity={0.35}
+        />
+
+        {/* anchor rings marking where the route crosses between slides */}
+        {Array.from({ length: slideCount - 1 }).map((_, i) => {
+          const seamX = UNIT * (i + 1);
+          return (
+            <G key={`seam-${i}`}>
+              <Circle cx={seamX} cy={280} r={36} stroke={colors.surface} strokeWidth={4} fill="none" opacity={0.4} />
+              <Circle cx={seamX} cy={280} r={10} fill={colors.tertiaryContainer} />
+              <Circle cx={seamX} cy={560} r={10} fill={colors.tertiaryContainer} stroke={colors.surface} strokeWidth={3} />
+              <Circle cx={seamX} cy={820} r={44} stroke={colors.primaryContainer} strokeWidth={5} strokeDasharray="8 8" fill="none" opacity={0.55} />
+            </G>
+          );
+        })}
+
+        {SCREEN_ICONS.filter((ic) => ic.x < totalUnits + 80).map((ic, i) => (
           <ThemeIcon key={i} {...ic} />
+        ))}
+        {ACCENT_SPARKLES.filter((s) => s.x < totalUnits + 60).map((s, i) => (
+          <Sparkle key={i} x={s.x} y={s.y} size={s.size} opacity={s.opacity} />
+        ))}
+        {ACCENT_PLUSES.filter((p) => p.x < totalUnits + 40).map((p, i) => (
+          <Plus key={i} {...p} />
+        ))}
+        {ACCENT_RINGS.filter((r) => r.x < totalUnits + 60).map((r, i) => (
+          <Circle key={i} cx={r.x} cy={r.y} r={r.r} stroke={colors.primaryContainer} strokeWidth={4} fill="none" opacity={0.4} />
         ))}
       </Svg>
     </Animated.View>
@@ -45,9 +110,9 @@ export function OnboardingBackdrop({
 
 type IconType = "bag" | "shirt" | "bottle" | "tag" | "basket";
 
-// Each drawn once at a nominal 76-unit local scale, centered on its own
-// origin — repositioned/resized per instance via a single translate+scale
-// transform rather than recomputing coordinates.
+// Same icons designed and PNG-checked earlier in this file's history —
+// reused here rather than re-deriving new shapes from the reference's own
+// (unvalidated) hand-drawn versions.
 function ThemeIcon({
   type,
   x,
@@ -113,39 +178,66 @@ const ICON_PATHS: Record<IconType, React.JSX.Element> = {
   ),
 };
 
-// Sparse scatter across the whole canvas — roughly 2-3 per 400-unit panel,
-// mixed types, varied size/rotation so it doesn't read as a repeated tile.
-const THEME_ICONS: { type: IconType; x: number; y: number; size: number; opacity: number; rotation?: number }[] = [
-  { type: "bag", x: 70, y: 220, size: 60, opacity: 0.14, rotation: -8 },
-  { type: "tag", x: 300, y: 440, size: 46, opacity: 0.12, rotation: 10 },
-  { type: "bottle", x: 470, y: 180, size: 56, opacity: 0.13, rotation: -6 },
-  { type: "shirt", x: 640, y: 460, size: 58, opacity: 0.14, rotation: 8 },
-  { type: "basket", x: 830, y: 220, size: 60, opacity: 0.13, rotation: -5 },
-  { type: "bag", x: 1000, y: 480, size: 50, opacity: 0.12, rotation: 12 },
-  { type: "shirt", x: 1150, y: 240, size: 54, opacity: 0.13, rotation: -10 },
+function Sparkle({ x, y, size, opacity }: { x: number; y: number; size: number; opacity: number }) {
+  const half = size / 2;
+  return (
+    <Path
+      d={`M${x} ${y - half} Q${x} ${y} ${x + half} ${y} Q${x} ${y} ${x} ${y + half} Q${x} ${y} ${x - half} ${y} Q${x} ${y} ${x} ${y - half} Z`}
+      fill={colors.tertiaryContainer}
+      opacity={opacity}
+    />
+  );
+}
+
+function Plus({ x, y, size, opacity }: { x: number; y: number; size: number; opacity: number }) {
+  const thickness = size * 0.28;
+  return (
+    <G opacity={opacity}>
+      <Rect x={x - size / 2} y={y - thickness / 2} width={size} height={thickness} rx={thickness / 2} fill={colors.surface} />
+      <Rect x={x - thickness / 2} y={y - size / 2} width={thickness} height={size} rx={thickness / 2} fill={colors.surface} />
+    </G>
+  );
+}
+
+// Per-screen thematic clusters, positioned using the reference's own zone
+// coordinates (same coordinate system) — screen 1 (toko): bag + basket,
+// screen 2 (katalog): shirt + bottle, screen 3 (pengantaran): tag + a
+// parcel-like bag standing in for the reference's ribboned box.
+const SCREEN_ICONS: { type: IconType; x: number; y: number; size: number; opacity: number; rotation?: number }[] = [
+  { type: "bag", x: 145, y: 290, size: 66, opacity: 0.5, rotation: -8 },
+  { type: "basket", x: 222, y: 655, size: 52, opacity: 0.4 },
+  { type: "shirt", x: 752, y: 272, size: 68, opacity: 0.5 },
+  { type: "bottle", x: 1151, y: 258, size: 54, opacity: 0.42, rotation: 4 },
+  { type: "tag", x: 1800, y: 258, size: 56, opacity: 0.5 },
+  { type: "bag", x: 1428, y: 257, size: 58, opacity: 0.4, rotation: 6 },
 ];
 
-// Irregular widths/heights/gaps instead of one repeated tile — reads as a
-// deliberate scalloped edge rather than a mechanically stamped pattern.
-function buildDrips(totalUnits: number): { x: number; w: number; h: number; opacity: number }[] {
-  const pattern = [
-    { w: 26, h: 78 },
-    { w: 34, h: 52 },
-    { w: 22, h: 96 },
-    { w: 30, h: 64 },
-    { w: 20, h: 44 },
-  ];
-  const drips: { x: number; w: number; h: number; opacity: number }[] = [];
-  let x = 16;
-  let i = 0;
-  while (x < totalUnits) {
-    const p = pattern[i % pattern.length];
-    drips.push({ x, w: p.w, h: p.h, opacity: i % 2 === 0 ? 0.14 : 0.09 });
-    x += p.w + 26;
-    i++;
-  }
-  return drips;
-}
+const ACCENT_SPARKLES: { x: number; y: number; size: number; opacity: number }[] = [
+  { x: 140, y: 200, size: 20, opacity: 0.55 },
+  { x: 520, y: 680, size: 18, opacity: 0.45 },
+  { x: 770, y: 210, size: 20, opacity: 0.5 },
+  { x: 1150, y: 640, size: 18, opacity: 0.45 },
+  { x: 1450, y: 210, size: 20, opacity: 0.5 },
+  { x: 1800, y: 320, size: 16, opacity: 0.4 },
+];
+
+const ACCENT_PLUSES: { x: number; y: number; size: number; opacity: number }[] = [
+  { x: 479, y: 332, size: 18, opacity: 0.55 },
+  { x: 98, y: 552, size: 16, opacity: 0.45 },
+  { x: 1189, y: 322, size: 18, opacity: 0.5 },
+  { x: 758, y: 592, size: 16, opacity: 0.45 },
+  { x: 1449, y: 602, size: 18, opacity: 0.5 },
+  { x: 1798, y: 422, size: 16, opacity: 0.45 },
+];
+
+const ACCENT_RINGS: { x: number; y: number; r: number }[] = [
+  { x: 170, y: 350, r: 22 },
+  { x: 560, y: 490, r: 14 },
+  { x: 800, y: 420, r: 26 },
+  { x: 1190, y: 480, r: 16 },
+  { x: 1390, y: 440, r: 20 },
+  { x: 1820, y: 550, r: 30 },
+];
 
 const styles = StyleSheet.create({
   // Deliberately not StyleSheet.absoluteFill — that also pins `right: 0`,
