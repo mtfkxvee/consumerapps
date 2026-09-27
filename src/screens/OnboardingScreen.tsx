@@ -1,41 +1,38 @@
 import { useRef, useState } from "react";
-import { Animated, Image, StyleSheet, useWindowDimensions, View } from "react-native";
+import { Animated, StyleSheet, useWindowDimensions, View } from "react-native";
 import PagerView, { type PagerViewOnPageScrollEvent } from "react-native-pager-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
 import { getBackdropScale, OnboardingBackdrop, BACKDROP_UNIT } from "../components/onboarding/OnboardingBackdrop";
+import {
+  FastDeliveryIllustration,
+  NearestStoreIllustration,
+  ShopNeedsIllustration,
+} from "../components/onboarding/illustrations";
 import { colors, fonts, radius, spacing } from "../theme/colors";
 
 type Slide = {
   key: string;
-  image: number;
-  // The transparent PNGs are trimmed tight to their own content, and each
-  // one has a different natural aspect ratio (they're cropped illustrations,
-  // not a uniform square anymore) - resizeMode="contain" needs this to size
-  // the box without distorting or letterboxing oddly.
-  aspectRatio: number;
+  Illustration: (props: { size?: number }) => React.JSX.Element;
   title: string;
 };
 
 const SLIDES: Slide[] = [
   {
     key: "nearest-store",
-    image: require("../../assets/onboarding/nearest-store.png"),
-    aspectRatio: 446 / 473,
+    Illustration: NearestStoreIllustration,
     title: "Temukan Toko X-SHA Terdekat",
   },
   {
     key: "shop-needs",
-    image: require("../../assets/onboarding/shop-needs.png"),
-    aspectRatio: 469 / 440,
+    Illustration: ShopNeedsIllustration,
     title: "Pilih Kebutuhan Harianmu",
   },
   {
     key: "fast-delivery",
-    image: require("../../assets/onboarding/fast-delivery.png"),
-    aspectRatio: 420 / 373,
+    Illustration: FastDeliveryIllustration,
     title: "Pengantaran Cepat ke Rumah",
   },
 ];
@@ -43,6 +40,7 @@ const SLIDES: Slide[] = [
 type Props = { onFinish: () => void };
 
 const NEXT_BUTTON_SIZE = 56;
+const ILLUSTRATION_SIZE = 208;
 
 export function OnboardingScreen({ onFinish }: Props) {
   const insets = useSafeAreaInsets();
@@ -211,12 +209,11 @@ function OnboardingSlide({
     outputRange: [16, 0, 16],
     extrapolate: "clamp",
   });
+  const Illustration = slide.Illustration;
   return (
     <View style={styles.slide}>
-      <Animated.View
-        style={[styles.illustrationWrap, { aspectRatio: slide.aspectRatio, opacity, transform: [{ translateY }] }]}
-      >
-        <Image source={slide.image} resizeMode="contain" style={styles.illustrationImage} />
+      <Animated.View style={[styles.illustrationWrap, { opacity, transform: [{ translateY }] }]}>
+        <Illustration size={ILLUSTRATION_SIZE} />
       </Animated.View>
 
       <Animated.View style={{ opacity, transform: [{ translateY }] }}>
@@ -249,16 +246,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: spacing.xl,
   },
-  // No card, no circle, no background fill behind it anymore - the PNGs are
-  // trimmed transparent cutouts, so they just sit directly on the page's
-  // own violet background rather than inside a separate shape.
+  // No card, no circle, no background fill behind it - these are hand-drawn
+  // SVGs (see components/onboarding/illustrations.tsx), so they just sit
+  // directly on the page's own violet background.
   illustrationWrap: {
-    width: "78%",
     marginBottom: spacing.xl,
-  },
-  illustrationImage: {
-    width: "100%",
-    height: "100%",
   },
   // Bigger, bolder, tighter than the rest of the app's headline scale -
   // matches the reference's oversized display type instead of the smaller
