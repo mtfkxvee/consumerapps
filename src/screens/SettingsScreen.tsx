@@ -1,5 +1,6 @@
 import { Alert, Linking, StyleSheet, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { Screen } from "../components/Screen";
 import { Text } from "../components/Text";
@@ -7,6 +8,7 @@ import { Pressable } from "../components/Pressable";
 import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { WHATSAPP_NUMBER } from "../lib/mock-data";
 import { getDiagnostics, recordError } from "../lib/crashlytics";
+import { ONBOARDING_KEY } from "../navigation/RootNavigator";
 
 type SettingsRow = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -45,6 +47,17 @@ export function SettingsScreen() {
   // background upload that's easy to lose track of (delay, no network,
   // MIUI-style background kill, etc).
   if (__DEV__) {
+    rows.push({
+      icon: "refresh-outline",
+      label: "Ulangi Onboarding (dev only)",
+      onPress: async () => {
+        await AsyncStorage.removeItem(ONBOARDING_KEY);
+        Alert.alert(
+          "Onboarding direset",
+          "Tutup aplikasi sepenuhnya lalu buka lagi (atau reload dari menu dev) untuk melihat onboarding dari awal.",
+        );
+      },
+    });
     rows.push({
       icon: "bug-outline",
       label: "Cek Status Crashlytics (dev only)",

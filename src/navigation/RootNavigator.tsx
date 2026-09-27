@@ -99,7 +99,8 @@ function MainTabs() {
   );
 }
 
-const ONBOARDING_KEY = "xsha_onboarding_seen";
+// Exported so the dev-only "Reset Onboarding" row in Pengaturan can clear it.
+export const ONBOARDING_KEY = "xsha_onboarding_seen";
 
 export function RootNavigator() {
   const { needsProfileCompletion } = useAuth();
