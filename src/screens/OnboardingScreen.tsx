@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Animated, StyleSheet, useWindowDimensions, View } from "react-native";
 import PagerView, { type PagerViewOnPageScrollEvent } from "react-native-pager-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -83,6 +83,8 @@ export function OnboardingScreen({ onFinish }: Props) {
         >
           <Ionicons name="chevron-back" size={20} color={colors.onPrimary} />
         </Pressable>
+        <ProgressBar count={SLIDES.length} scrollProgress={scrollProgress} />
+        <View style={{ width: 40, height: 40 }} />
       </View>
 
       <PagerView
@@ -93,11 +95,9 @@ export function OnboardingScreen({ onFinish }: Props) {
         onPageScroll={handlePageScroll}
       >
         {SLIDES.map((slide, index) => (
-          <OnboardingSlide key={slide.key} slide={slide} active={page === index} />
+          <OnboardingSlide key={slide.key} slide={slide} index={index} scrollProgress={scrollProgress} />
         ))}
       </PagerView>
-
-      <PaginationDots count={SLIDES.length} scrollProgress={scrollProgress} />
 
       <View style={styles.footer}>
         <Pressable onPress={onFinish} hitSlop={8}>
@@ -118,61 +118,59 @@ export function OnboardingScreen({ onFinish }: Props) {
   );
 }
 
-// A track of small static dots with one pill-shaped indicator sliding on
-// top, driven directly by scrollProgress (the same position+offset the
-// PagerView itself reports) rather than snapping between index === page
-// states — it tracks the finger mid-swipe and rides the same native settle
-// animation the page content does on release, instead of jumping the
-// instant the active index changes.
-const DOT_SIZE = 8;
-const DOT_GAP = 8;
-const PILL_WIDTH = 24;
-
-function PaginationDots({ count, scrollProgress }: { count: number; scrollProgress: Animated.Value }) {
-  const stride = DOT_SIZE + DOT_GAP;
-  const centers = Array.from({ length: count }, (_, i) => i * stride + DOT_SIZE / 2);
-  const pillTranslateX = scrollProgress.interpolate({
-    inputRange: centers.map((_, i) => i),
-    outputRange: centers.map((c) => c - PILL_WIDTH / 2),
+// One continuous fill bar in the header rather than 3 discrete segments —
+// driven directly by the live position+offset the PagerView reports (not
+// the settled page index), so it grows in exact lockstep with the drag
+// itself instead of jumping to "full" once a page change commits.
+function ProgressBar({ count, scrollProgress }: { count: number; scrollProgress: Animated.Value }) {
+  const fill = scrollProgress.interpolate({
+    inputRange: [0, count - 1],
+    outputRange: ["0%", "100%"],
+    extrapolate: "clamp",
   });
-  const trackWidth = count * DOT_SIZE + (count - 1) * DOT_GAP;
-
   return (
-    <View style={styles.dotsRow}>
-      <View style={[styles.dotsTrack, { width: trackWidth }]}>
-        {Array.from({ length: count }).map((_, i) => (
-          <View key={i} style={styles.dot} />
-        ))}
-        <Animated.View style={[styles.pill, { transform: [{ translateX: pillTranslateX }] }]} />
-      </View>
+    <View style={styles.progressTrack}>
+      <Animated.View style={[styles.progressFill, { width: fill }]} />
     </View>
   );
 }
 
-function OnboardingSlide({ slide, active }: { slide: Slide; active: boolean }) {
-  const anim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (!active) return;
-    anim.setValue(0);
-    Animated.spring(anim, {
-      toValue: 1,
-      useNativeDriver: true,
-      tension: 55,
-      friction: 9,
-    }).start();
-  }, [active, anim]);
-
-  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [28, 0] });
+// Content motion is derived continuously from scrollProgress (the same
+// live value driving the backdrop/progress bar) instead of a spring
+// triggered once the page settles — the previous "active" + Animated.spring
+// approach left the incoming slide invisible for the whole drag (spring
+// only fired after onPageSelected), so content popped in right as you
+// stopped dragging: exactly what read as a flicker. Interpolating against
+// this slide's own index means it fades/lifts in sync with the drag itself,
+// same as the backdrop and progress bar.
+function OnboardingSlide({
+  slide,
+  index,
+  scrollProgress,
+}: {
+  slide: Slide;
+  index: number;
+  scrollProgress: Animated.Value;
+}) {
+  const opacity = scrollProgress.interpolate({
+    inputRange: [index - 1, index, index + 1],
+    outputRange: [0, 1, 0],
+    extrapolate: "clamp",
+  });
+  const translateY = scrollProgress.interpolate({
+    inputRange: [index - 1, index, index + 1],
+    outputRange: [16, 0, 16],
+    extrapolate: "clamp",
+  });
   const Illustration = slide.Illustration;
 
   return (
     <View style={styles.slide}>
-      <Animated.View style={[styles.illustrationDisc, { opacity: anim, transform: [{ translateY }] }]}>
+      <Animated.View style={[styles.illustrationDisc, { opacity, transform: [{ translateY }] }]}>
         <Illustration size={132} />
       </Animated.View>
 
-      <Animated.View style={{ opacity: anim, transform: [{ translateY }] }}>
+      <Animated.View style={{ opacity, transform: [{ translateY }] }}>
         <Text style={styles.title}>{slide.title}</Text>
         <Text style={styles.subtitle}>{slide.subtitle}</Text>
       </Animated.View>
@@ -184,7 +182,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.primary },
   header: {
     height: 44,
-    justifyContent: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
     paddingHorizontal: spacing.md,
   },
   backButton: {
@@ -224,28 +224,15 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     opacity: 0.9,
   },
-  dotsRow: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: spacing.lg,
-  },
-  dotsTrack: {
-    height: DOT_SIZE,
-    flexDirection: "row",
-    gap: DOT_GAP,
-  },
-  dot: {
-    width: DOT_SIZE,
-    height: DOT_SIZE,
+  progressTrack: {
+    flex: 1,
+    height: 4,
     borderRadius: radius.full,
-    backgroundColor: "rgba(255,255,255,0.35)",
+    backgroundColor: "rgba(255,255,255,0.25)",
+    overflow: "hidden",
   },
-  pill: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    width: PILL_WIDTH,
-    height: DOT_SIZE,
+  progressFill: {
+    height: "100%",
     borderRadius: radius.full,
     backgroundColor: colors.tertiaryContainer,
   },
