@@ -3,15 +3,19 @@ import { colors } from "../../theme/colors";
 
 type Props = { size?: number };
 
+// All three sit inside the same light disc (see OnboardingScreen's
+// illustrationDisc) — colors here are chosen to read clearly against that
+// light background, not the violet page background behind it.
+
 // Storefront with a location pin above it — "find the nearest store".
 export function NearestStoreIllustration({ size = 120 }: Props) {
   return (
     <Svg width={size} height={size} viewBox="0 0 120 120" fill="none">
-      <Ellipse cx="60" cy="104" rx="34" ry="6" fill={colors.primaryContainer} opacity={0.25} />
+      <Ellipse cx="60" cy="104" rx="34" ry="6" fill={colors.primary} opacity={0.12} />
       {/* store body */}
       <Rect x="26" y="52" width="68" height="42" rx="4" fill={colors.surface} />
       <Path d="M22 52 L60 30 L98 52 Z" fill={colors.primary} />
-      <Rect x="26" y="52" width="68" height="8" fill={colors.secondaryContainer} />
+      <Rect x="26" y="52" width="68" height="8" fill={colors.tertiaryContainer} />
       {/* door */}
       <Rect x="52" y="70" width="16" height="24" rx="2" fill={colors.primaryContainer} />
       {/* windows */}
@@ -42,17 +46,17 @@ export function ShopNeedsIllustration({ size = 120 }: Props) {
       <Circle cx="60" cy="88" r="3" fill={colors.primaryFixed} />
 
       {/* orbiting bubbles */}
-      <Circle cx="20" cy="34" r="14" fill={colors.secondaryContainer} opacity={0.9} />
+      <Circle cx="20" cy="34" r="14" fill={colors.tertiaryContainer} opacity={0.9} />
       <Path d="M14 32h12l-1.5 8h-9L14 32Z" fill={colors.surface} />
       <Rect x="16.5" y="27" width="7" height="5" rx="2.5" stroke={colors.surface} strokeWidth={1.6} fill="none" />
 
-      <Circle cx="98" cy="30" r="13" fill={colors.tertiaryContainer} opacity={0.9} />
+      <Circle cx="98" cy="30" r="13" fill={colors.secondaryContainer} opacity={0.85} />
       <Path d="M92 27h12v10a6 6 0 0 1-12 0v-10Z" fill={colors.surface} />
 
       <Circle cx="16" cy="80" r="12" fill={colors.primaryFixed} />
       <Path d="M10 79l4 5 8-9" stroke={colors.primary} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" fill="none" />
 
-      <Circle cx="100" cy="78" r="14" fill={colors.secondaryContainer} opacity={0.9} />
+      <Circle cx="100" cy="78" r="14" fill={colors.tertiaryContainer} opacity={0.9} />
       <Rect x="93" y="72" width="14" height="12" rx="2" fill={colors.surface} />
       <Path d="M96 72v-2a4 4 0 0 1 8 0v2" stroke={colors.surface} strokeWidth={1.6} fill="none" />
     </Svg>
@@ -63,7 +67,7 @@ export function ShopNeedsIllustration({ size = 120 }: Props) {
 export function FastDeliveryIllustration({ size = 120 }: Props) {
   return (
     <Svg width={size} height={size} viewBox="0 0 120 120" fill="none">
-      <Ellipse cx="60" cy="100" rx="38" ry="6" fill={colors.primaryContainer} opacity={0.25} />
+      <Ellipse cx="60" cy="100" rx="38" ry="6" fill={colors.primary} opacity={0.12} />
       {/* wheels */}
       <Circle cx="34" cy="88" r="11" fill={colors.onSurface} />
       <Circle cx="34" cy="88" r="4.5" fill={colors.surface} />
