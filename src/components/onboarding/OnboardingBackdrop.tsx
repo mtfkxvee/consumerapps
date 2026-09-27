@@ -1,13 +1,17 @@
 import { Animated, StyleSheet } from "react-native";
-import Svg, { Circle, Path, Rect } from "react-native-svg";
+import Svg, { Circle, G, Path, Rect } from "react-native-svg";
 import { colors } from "../../theme/colors";
 
-// One wide virtual canvas (400 units per slide) rather than one backdrop per
-// slide — a single dashed "journey" line winds continuously through all 3
-// panels, layered glow orbs and drips give it real depth, and it's all
-// panned by `translateX` (driven by real swipe position, see
-// OnboardingScreen) so the background visibly slides as you move between
-// slides, while the page's own solid color stays constant.
+// One wide virtual canvas (400 units per slide) panned by `translateX`
+// (driven by real swipe position, see OnboardingScreen) so the background
+// visibly slides between slides, while the page's own solid color stays
+// constant.
+//
+// Kept deliberately simple and on-theme after two rounds of feedback: the
+// first pass (abstract journey line + waypoint dots + multiple glow orbs)
+// was flagged as "too busy" — dropped in favor of a sparse scatter of
+// outlined retail/FMCG/fashion icons (shopping bag, t-shirt, bottle, price
+// tag, basket) at low opacity, plus the same minimal top drips as before.
 export function OnboardingBackdrop({
   slideCount,
   screenWidth,
@@ -21,90 +25,107 @@ export function OnboardingBackdrop({
   const totalUnits = unit * slideCount;
   const totalWidth = screenWidth * slideCount;
 
-  const journeyPoints = buildJourneyPoints(totalUnits);
-  const journeyPath = pointsToPath(journeyPoints);
-
   return (
     <Animated.View
       style={[styles.container, { width: totalWidth, transform: [{ translateX }] }]}
       pointerEvents="none"
     >
       <Svg width={totalWidth} height="100%" viewBox={`0 0 ${totalUnits} 800`} preserveAspectRatio="none">
-        {/* soft layered glow orbs — depth, not just flat decoration */}
-        {GLOW_ORBS.filter((o) => o.x < totalUnits + 100).map((o, i) => (
-          <Glow key={i} x={o.x} y={o.y} r={o.r} color={o.color} />
-        ))}
-
-        {/* top drip shapes — varied width/height instead of one uniform tile */}
         {buildDrips(totalUnits).map((d, i) => (
           <Rect key={i} x={d.x} y={0} width={d.w} height={d.h} rx={d.w / 2} fill={colors.surface} opacity={d.opacity} />
         ))}
 
-        {/* the winding journey line + a waypoint marker at each turn */}
-        <Path d={journeyPath} stroke={colors.tertiaryContainer} strokeWidth={3} strokeDasharray="9 7" strokeLinecap="round" opacity={0.55} fill="none" />
-        {journeyPoints.map(([x, y], i) => (
-          <Circle key={i} cx={x} cy={y} r={i === 0 || i === journeyPoints.length - 1 ? 0 : 5} fill={colors.tertiaryContainer} opacity={0.8} />
-        ))}
-
-        {SPARKLES.filter((s) => s.x < totalUnits + 60).map((s, i) => (
-          <Sparkle key={i} x={s.x} y={s.y} size={s.size} opacity={s.opacity} />
+        {THEME_ICONS.filter((ic) => ic.x < totalUnits + 60).map((ic, i) => (
+          <ThemeIcon key={i} {...ic} />
         ))}
       </Svg>
     </Animated.View>
   );
 }
 
-// Three concentric circles fading outward — the closest RN/SVG gets to a
-// soft radial-gradient glow without an actual gradient def.
-function Glow({ x, y, r, color }: { x: number; y: number; r: number; color: string }) {
+type IconType = "bag" | "shirt" | "bottle" | "tag" | "basket";
+
+// Each drawn once at a nominal 76-unit local scale, centered on its own
+// origin — repositioned/resized per instance via a single translate+scale
+// transform rather than recomputing coordinates.
+function ThemeIcon({
+  type,
+  x,
+  y,
+  size,
+  opacity,
+  rotation = 0,
+}: {
+  type: IconType;
+  x: number;
+  y: number;
+  size: number;
+  opacity: number;
+  rotation?: number;
+}) {
+  const scale = size / 76;
   return (
+    <G transform={`translate(${x} ${y}) rotate(${rotation}) scale(${scale})`} opacity={opacity}>
+      {ICON_PATHS[type]}
+    </G>
+  );
+}
+
+const strokeProps = {
+  stroke: colors.surface,
+  strokeWidth: 2.4,
+  fill: "none" as const,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+};
+
+const ICON_PATHS: Record<IconType, React.JSX.Element> = {
+  bag: (
     <>
-      <Circle cx={x} cy={y} r={r} fill={color} opacity={0.06} />
-      <Circle cx={x} cy={y} r={r * 0.66} fill={color} opacity={0.09} />
-      <Circle cx={x} cy={y} r={r * 0.36} fill={color} opacity={0.14} />
+      <Path d="M-16,-24 Q-16,-38 0,-38 Q16,-38 16,-24" {...strokeProps} />
+      <Path d="M-22,-24 L22,-24 L18,30 L-18,30 Z" {...strokeProps} />
     </>
-  );
-}
-
-function Sparkle({ x, y, size, opacity }: { x: number; y: number; size: number; opacity: number }) {
-  const half = size / 2;
-  return (
+  ),
+  shirt: (
     <Path
-      d={`M${x} ${y - half} Q${x} ${y} ${x + half} ${y} Q${x} ${y} ${x} ${y + half} Q${x} ${y} ${x - half} ${y} Q${x} ${y} ${x} ${y - half} Z`}
-      fill={colors.surface}
-      opacity={opacity}
+      d="M-18,-20 L-30,-12 L-24,-2 L-16,-6 L-16,28 L16,28 L16,-6 L24,-2 L30,-12 L18,-20 Q12,-14 0,-14 Q-12,-14 -18,-20 Z"
+      {...strokeProps}
     />
-  );
-}
+  ),
+  bottle: (
+    <>
+      <Path d="M-6,-36 L6,-36 L6,-24 L12,-16 L12,32 Q12,36 8,36 L-8,36 Q-12,36 -12,32 L-12,-16 L-6,-24 Z" {...strokeProps} />
+      <Path d="M-12,4 L12,4" {...strokeProps} />
+    </>
+  ),
+  tag: (
+    <>
+      <Path d="M-22,-16 L4,-16 L24,4 L4,24 L-22,24 Z" {...strokeProps} />
+      <Circle cx={-10} cy={-2} r={3} stroke={colors.surface} strokeWidth={2.4} fill="none" />
+    </>
+  ),
+  basket: (
+    <>
+      <Path d="M-24,-8 L24,-8 L18,26 L-18,26 Z" {...strokeProps} />
+      <Path d="M-16,-8 Q-10,-26 0,-26 Q10,-26 16,-8" {...strokeProps} />
+      <Path d="M-12,-8 L-8,16 M0,-8 L0,16 M12,-8 L8,16" {...strokeProps} />
+    </>
+  ),
+};
 
-// One glow per virtual 400-unit panel, alternating tints from the existing
-// palette so each slide's "third" of the canvas has its own accent without
-// introducing new colors.
-const GLOW_ORBS = [
-  { x: 90, y: 180, r: 130, color: colors.secondary },
-  { x: 340, y: 560, r: 100, color: colors.tertiaryContainer },
-  { x: 460, y: 620, r: 150, color: colors.primaryContainer },
-  { x: 700, y: 140, r: 110, color: colors.tertiaryContainer },
-  { x: 860, y: 540, r: 140, color: colors.secondary },
-  { x: 1080, y: 200, r: 120, color: colors.primaryContainer },
+// Sparse scatter across the whole canvas — roughly 2-3 per 400-unit panel,
+// mixed types, varied size/rotation so it doesn't read as a repeated tile.
+const THEME_ICONS: { type: IconType; x: number; y: number; size: number; opacity: number; rotation?: number }[] = [
+  { type: "bag", x: 70, y: 220, size: 60, opacity: 0.14, rotation: -8 },
+  { type: "tag", x: 300, y: 440, size: 46, opacity: 0.12, rotation: 10 },
+  { type: "bottle", x: 470, y: 180, size: 56, opacity: 0.13, rotation: -6 },
+  { type: "shirt", x: 640, y: 460, size: 58, opacity: 0.14, rotation: 8 },
+  { type: "basket", x: 830, y: 220, size: 60, opacity: 0.13, rotation: -5 },
+  { type: "bag", x: 1000, y: 480, size: 50, opacity: 0.12, rotation: 12 },
+  { type: "shirt", x: 1150, y: 240, size: 54, opacity: 0.13, rotation: -10 },
 ];
 
-const SPARKLES = [
-  { x: 60, y: 260, size: 14, opacity: 0.28 },
-  { x: 150, y: 420, size: 10, opacity: 0.22 },
-  { x: 300, y: 130, size: 16, opacity: 0.24 },
-  { x: 380, y: 340, size: 11, opacity: 0.2 },
-  { x: 470, y: 470, size: 14, opacity: 0.26 },
-  { x: 560, y: 150, size: 10, opacity: 0.2 },
-  { x: 680, y: 360, size: 15, opacity: 0.25 },
-  { x: 780, y: 540, size: 11, opacity: 0.22 },
-  { x: 900, y: 120, size: 13, opacity: 0.24 },
-  { x: 990, y: 400, size: 10, opacity: 0.2 },
-  { x: 1100, y: 300, size: 16, opacity: 0.26 },
-  { x: 1180, y: 500, size: 12, opacity: 0.22 },
-];
-
-// Irregular widths/heights/gaps instead of one tile repeated — reads as a
+// Irregular widths/heights/gaps instead of one repeated tile — reads as a
 // deliberate scalloped edge rather than a mechanically stamped pattern.
 function buildDrips(totalUnits: number): { x: number; w: number; h: number; opacity: number }[] {
   const pattern = [
@@ -119,33 +140,11 @@ function buildDrips(totalUnits: number): { x: number; w: number; h: number; opac
   let i = 0;
   while (x < totalUnits) {
     const p = pattern[i % pattern.length];
-    drips.push({ x, w: p.w, h: p.h, opacity: i % 2 === 0 ? 0.16 : 0.1 });
+    drips.push({ x, w: p.w, h: p.h, opacity: i % 2 === 0 ? 0.14 : 0.09 });
     x += p.w + 26;
     i++;
   }
   return drips;
-}
-
-// A gentle sine-like wave through the whole canvas — smooth C-curves
-// between alternating high/low points rather than one repeated hump.
-function buildJourneyPoints(totalUnits: number): [number, number][] {
-  const points: [number, number][] = [];
-  const step = 220;
-  let y = 260;
-  for (let x = 0; x <= totalUnits; x += step) {
-    points.push([x, y]);
-    y = y === 260 ? 440 : 260;
-  }
-  return points;
-}
-
-function pointsToPath(points: [number, number][]): string {
-  return points.reduce((d, [x, y], i) => {
-    if (i === 0) return `M${x} ${y}`;
-    const [px, py] = points[i - 1];
-    const midX = (px + x) / 2;
-    return `${d} C${midX} ${py}, ${midX} ${y}, ${x} ${y}`;
-  }, "");
 }
 
 const styles = StyleSheet.create({

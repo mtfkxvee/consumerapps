@@ -44,6 +44,9 @@ const SLIDES: Slide[] = [
 
 type Props = { onFinish: () => void };
 
+const NEXT_BUTTON_SIZE = 56;
+const CTA_WIDTH = 188;
+
 export function OnboardingScreen({ onFinish }: Props) {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
@@ -64,6 +67,27 @@ export function OnboardingScreen({ onFinish }: Props) {
   const backdropTranslateX = scrollProgress.interpolate({
     inputRange: [0, SLIDES.length - 1],
     outputRange: [0, -(SLIDES.length - 1) * screenWidth],
+  });
+
+  // Morphs the circular "next" button into the "Mulai Sekarang" pill
+  // continuously over the last slide transition, rather than swapping
+  // between two differently-shaped components the instant isLast flips —
+  // same live-scroll-driven approach as the rest of this screen.
+  const morphRange = [SLIDES.length - 2, SLIDES.length - 1];
+  const ctaWidth = scrollProgress.interpolate({
+    inputRange: morphRange,
+    outputRange: [NEXT_BUTTON_SIZE, CTA_WIDTH],
+    extrapolate: "clamp",
+  });
+  const arrowOpacity = scrollProgress.interpolate({
+    inputRange: morphRange,
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+  const ctaTextOpacity = scrollProgress.interpolate({
+    inputRange: morphRange,
+    outputRange: [0, 1],
+    extrapolate: "clamp",
   });
 
   const goToPage = (index: number) => {
@@ -104,15 +128,21 @@ export function OnboardingScreen({ onFinish }: Props) {
           <Text style={styles.skipText}>{isLast ? "SELESAI" : "LEWATI"}</Text>
         </Pressable>
 
-        {isLast ? (
-          <Pressable style={styles.ctaButton} onPress={onFinish}>
-            <Text style={styles.ctaButtonText}>MULAI SEKARANG</Text>
+        <Animated.View style={[styles.morphButton, { width: ctaWidth }]}>
+          <Pressable
+            style={styles.morphPressableFill}
+            onPress={() => (isLast ? onFinish() : goToPage(page + 1))}
+          >
+            <Animated.View style={[styles.morphContent, { opacity: arrowOpacity }]}>
+              <Ionicons name="arrow-forward" size={22} color={colors.onTertiaryContainer} />
+            </Animated.View>
+            <Animated.View style={[styles.morphContent, { opacity: ctaTextOpacity }]}>
+              <Text style={styles.ctaButtonText} numberOfLines={1}>
+                MULAI SEKARANG
+              </Text>
+            </Animated.View>
           </Pressable>
-        ) : (
-          <Pressable style={styles.nextButton} onPress={() => goToPage(page + 1)}>
-            <Ionicons name="arrow-forward" size={22} color={colors.onTertiaryContainer} />
-          </Pressable>
-        )}
+        </Animated.View>
       </View>
     </View>
   );
@@ -249,29 +279,25 @@ const styles = StyleSheet.create({
     color: colors.primaryFixed,
     letterSpacing: 1.2,
   },
-  nextButton: {
-    width: 56,
-    height: 56,
+  // Width is animated (see ctaWidth); height/shape stay fixed throughout
+  // the morph, so it's one continuously-resizing pill rather than two
+  // differently-shaped components swapped at a breakpoint.
+  morphButton: {
+    height: NEXT_BUTTON_SIZE,
     borderRadius: radius.full,
     backgroundColor: colors.tertiaryContainer,
-    alignItems: "center",
-    justifyContent: "center",
+    overflow: "hidden",
     shadowColor: colors.black,
     shadowOpacity: 0.25,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
   },
-  ctaButton: {
-    // Fixed height matching nextButton (56) rather than padding-derived —
-    // otherwise this pill renders shorter than the circular button it
-    // replaces on the last slide, and since footer centers its row
-    // vertically, LEWATI/SELESAI's text visibly shifts position between
-    // the two states.
-    height: 56,
-    backgroundColor: colors.tertiaryContainer,
-    borderRadius: radius.full,
-    paddingHorizontal: spacing.lg,
+  morphPressableFill: { flex: 1 },
+  // Arrow icon and CTA text sit stacked on the same spot (absolute fill)
+  // and cross-fade via opacity, rather than sitting side by side.
+  morphContent: {
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
   },
