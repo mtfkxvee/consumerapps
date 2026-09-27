@@ -1,21 +1,16 @@
 import { useRef, useState } from "react";
-import { Animated, StyleSheet, useWindowDimensions, View } from "react-native";
+import { Animated, Image, StyleSheet, useWindowDimensions, View } from "react-native";
 import PagerView, { type PagerViewOnPageScrollEvent } from "react-native-pager-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
 import { getBackdropScale, OnboardingBackdrop, BACKDROP_UNIT } from "../components/onboarding/OnboardingBackdrop";
-import {
-  FastDeliveryIllustration,
-  NearestStoreIllustration,
-  ShopNeedsIllustration,
-} from "../components/onboarding/illustrations";
 import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 
 type Slide = {
   key: string;
-  Illustration: (props: { size?: number }) => React.JSX.Element;
+  image: number;
   title: string;
   subtitle: string;
 };
@@ -23,20 +18,20 @@ type Slide = {
 const SLIDES: Slide[] = [
   {
     key: "nearest-store",
-    Illustration: NearestStoreIllustration,
+    image: require("../../assets/onboarding/nearest-store.jpg"),
     title: "Temukan Toko X-SHA Terdekat",
     subtitle:
       "Temukan toko kelontong, minimarket, dan supermarket X-SHA terdekat untuk memenuhi kebutuhan harianmu dengan mudah.",
   },
   {
     key: "shop-needs",
-    Illustration: ShopNeedsIllustration,
+    image: require("../../assets/onboarding/shop-needs.jpg"),
     title: "Pilih Kebutuhan Harianmu",
     subtitle: "Belanja sembako, perlengkapan rumah tangga, hingga camilan favorit dengan diskon dan promo spesial setiap hari.",
   },
   {
     key: "fast-delivery",
-    Illustration: FastDeliveryIllustration,
+    image: require("../../assets/onboarding/fast-delivery.jpg"),
     title: "Pengantaran Cepat ke Rumah",
     subtitle: "Pesanan kebutuhan pokok dan belanjaanmu langsung diantar kilat sampai depan pintu, aman dan praktis.",
   },
@@ -203,12 +198,10 @@ function OnboardingSlide({
     outputRange: [16, 0, 16],
     extrapolate: "clamp",
   });
-  const Illustration = slide.Illustration;
-
   return (
     <View style={styles.slide}>
       <Animated.View style={[styles.illustrationDisc, { opacity, transform: [{ translateY }] }]}>
-        <Illustration size={132} />
+        <Image source={slide.image} resizeMode="cover" style={styles.illustrationImage} />
       </Animated.View>
 
       <Animated.View style={{ opacity, transform: [{ translateY }] }}>
@@ -242,14 +235,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: spacing.xl,
   },
+  // The source photos are square with the illustration centered inside a
+  // soft blob that already fills most of the frame — clipping to a circle
+  // (rather than showing the square with visible white corners) is what
+  // makes it read as one clean "disc", same as the earlier SVG version.
   illustrationDisc: {
     width: 224,
     height: 224,
     borderRadius: radius.full,
-    alignItems: "center",
-    justifyContent: "center",
+    overflow: "hidden",
     marginBottom: spacing.xl,
     backgroundColor: colors.primaryFixed,
+  },
+  illustrationImage: {
+    width: "100%",
+    height: "100%",
   },
   title: {
     ...typography.headlineLg,
