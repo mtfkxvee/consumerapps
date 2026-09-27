@@ -1,10 +1,11 @@
-import { useCallback, useEffect } from "react";
+import { useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { RootNavigator } from "./src/navigation/RootNavigator";
+import { AppSplash } from "./src/components/AppSplash";
 import { CartProvider } from "./src/state/CartContext";
 import { AuthProvider } from "./src/state/AuthContext";
 import { OutletProvider } from "./src/state/OutletContext";
@@ -42,15 +43,16 @@ export default function App() {
     [fonts.display.extraBold]: require("@expo-google-fonts/bricolage-grotesque/800ExtraBold/BricolageGrotesque_800ExtraBold.ttf"),
   });
 
-  const onLayout = useCallback(async () => {
-    if (fontsLoaded || fontError) await SplashScreen.hideAsync();
-  }, [fontsLoaded, fontError]);
-
+  // Android 12+ only lets the native splash (app.json/expo-splash-screen)
+  // show a small centered icon, never a full-bleed photo — so it's hidden
+  // as soon as this component mounts, immediately handing off to
+  // AppSplash below, which renders the same photo full-screen in JS
+  // instead, for as long as fonts are still loading.
   useEffect(() => {
-    onLayout();
-  }, [onLayout]);
+    SplashScreen.hideAsync();
+  }, []);
 
-  if (!fontsLoaded && !fontError) return null;
+  if (!fontsLoaded && !fontError) return <AppSplash />;
 
   return (
     <SafeAreaProvider>
