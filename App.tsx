@@ -9,8 +9,10 @@ import { CartProvider } from "./src/state/CartContext";
 import { AuthProvider } from "./src/state/AuthContext";
 import { OutletProvider } from "./src/state/OutletContext";
 import { fonts } from "./src/theme/colors";
+import { installGlobalErrorHandlers } from "./src/lib/crashlytics";
 
 SplashScreen.preventAutoHideAsync();
+installGlobalErrorHandlers();
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },

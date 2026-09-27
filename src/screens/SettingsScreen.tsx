@@ -6,6 +6,7 @@ import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
 import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { WHATSAPP_NUMBER } from "../lib/mock-data";
+import { recordError } from "../lib/crashlytics";
 
 type SettingsRow = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -36,6 +37,21 @@ export function SettingsScreen() {
         ),
     },
   ];
+
+  // Only ever present in a dev build, never in what ships to customers —
+  // fires a non-fatal test error so a fresh Crashlytics setup can be
+  // confirmed end-to-end (Firebase's own dashboard can take a few minutes
+  // to show a new report).
+  if (__DEV__) {
+    rows.push({
+      icon: "bug-outline",
+      label: "Tes Crashlytics (dev only)",
+      onPress: () => {
+        recordError(new Error("Test error dari Pengaturan"), "Manual test dari SettingsScreen");
+        Alert.alert("Terkirim", "Error uji sudah dikirim ke Crashlytics. Cek Firebase Console dalam beberapa menit.");
+      },
+    });
+  }
 
   return (
     <Screen>

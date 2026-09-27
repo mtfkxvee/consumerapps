@@ -7,6 +7,7 @@ import {
   logoutCustomer,
 } from "../lib/api/auth";
 import type { CurrentUser } from "../lib/types";
+import { setCrashUser } from "../lib/crashlytics";
 
 type AuthContextValue = {
   user: CurrentUser | null;
@@ -42,6 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     const current = await getCurrentCustomer();
     setUser(current);
+    setCrashUser(current?.customer?.id ?? null);
     setIsLoading(false);
   }, []);
 
@@ -89,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     await logoutCustomer();
     setUser(null);
+    setCrashUser(null);
     setNeedsProfileCompletion(false);
   }, []);
 

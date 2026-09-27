@@ -19,6 +19,7 @@
     },
     "android": {
       "package": "id.xsha.app",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#3D1F73",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -47,7 +48,9 @@
         {
           "locationWhenInUsePermission": "X-SHA menggunakan lokasi Anda untuk membantu memilih titik alamat pengiriman di peta."
         }
-      ]
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/crashlytics"
     ]
   }
 }
