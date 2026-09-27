@@ -263,10 +263,17 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   ctaButton: {
+    // Fixed height matching nextButton (56) rather than padding-derived —
+    // otherwise this pill renders shorter than the circular button it
+    // replaces on the last slide, and since footer centers its row
+    // vertically, LEWATI/SELESAI's text visibly shifts position between
+    // the two states.
+    height: 56,
     backgroundColor: colors.tertiaryContainer,
     borderRadius: radius.full,
     paddingHorizontal: spacing.lg,
-    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
   },
   ctaButtonText: {
     color: colors.onTertiaryContainer,
