@@ -40,7 +40,6 @@ const SLIDES: Slide[] = [
 type Props = { onFinish: () => void };
 
 const NEXT_BUTTON_SIZE = 56;
-const CTA_WIDTH = 188;
 
 export function OnboardingScreen({ onFinish }: Props) {
   const insets = useSafeAreaInsets();
@@ -70,14 +69,18 @@ export function OnboardingScreen({ onFinish }: Props) {
     outputRange: [0, -(SLIDES.length - 1) * panelPixelWidth],
   });
 
-  // Morphs the circular "next" button into the "Mulai Sekarang" pill
-  // continuously over the last slide transition, rather than swapping
+  // Morphs the circular "next" button into a full-width "Mulai Sekarang"
+  // pill continuously over the last slide transition, rather than swapping
   // between two differently-shaped components the instant isLast flips —
-  // same live-scroll-driven approach as the rest of this screen.
+  // same live-scroll-driven approach as the rest of this screen. It grows
+  // to take over the whole footer row (not just a fixed-width pill) as the
+  // "LEWATI" label on the other side fades away, so there's no separate
+  // "SELESAI" state to land on.
   const morphRange = [SLIDES.length - 2, SLIDES.length - 1];
+  const fullCtaWidth = screenWidth - spacing.lg * 2;
   const ctaWidth = scrollProgress.interpolate({
     inputRange: morphRange,
-    outputRange: [NEXT_BUTTON_SIZE, CTA_WIDTH],
+    outputRange: [NEXT_BUTTON_SIZE, fullCtaWidth],
     extrapolate: "clamp",
   });
   const arrowOpacity = scrollProgress.interpolate({
@@ -88,6 +91,11 @@ export function OnboardingScreen({ onFinish }: Props) {
   const ctaTextOpacity = scrollProgress.interpolate({
     inputRange: morphRange,
     outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+  const skipOpacity = scrollProgress.interpolate({
+    inputRange: morphRange,
+    outputRange: [1, 0],
     extrapolate: "clamp",
   });
 
@@ -130,9 +138,11 @@ export function OnboardingScreen({ onFinish }: Props) {
       </PagerView>
 
       <View style={styles.footer}>
-        <Pressable onPress={onFinish} hitSlop={8}>
-          <Text style={styles.skipText}>{isLast ? "SELESAI" : "LEWATI"}</Text>
-        </Pressable>
+        <Animated.View style={[styles.skipButton, { opacity: skipOpacity }]} pointerEvents={isLast ? "none" : "auto"}>
+          <Pressable onPress={onFinish} hitSlop={8}>
+            <Text style={styles.skipText}>LEWATI</Text>
+          </Pressable>
+        </Animated.View>
 
         <Animated.View style={[styles.morphButton, { width: ctaWidth }]}>
           <Pressable
@@ -277,12 +287,20 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     backgroundColor: colors.tertiaryContainer,
   },
+  // Both children are absolutely positioned (rather than flex row +
+  // space-between) so the pill can grow past where the skip label used to
+  // sit without fighting it for flex space — it just grows over that space
+  // as the label fades out, anchored to the same right edge throughout.
   footer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
+    height: NEXT_BUTTON_SIZE,
+    marginBottom: spacing.md,
+  },
+  skipButton: {
+    position: "absolute",
+    left: spacing.lg,
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
   },
   skipText: {
     fontSize: 11,
@@ -294,6 +312,9 @@ const styles = StyleSheet.create({
   // the morph, so it's one continuously-resizing pill rather than two
   // differently-shaped components swapped at a breakpoint.
   morphButton: {
+    position: "absolute",
+    right: spacing.lg,
+    top: 0,
     height: NEXT_BUTTON_SIZE,
     borderRadius: radius.full,
     backgroundColor: colors.tertiaryContainer,
