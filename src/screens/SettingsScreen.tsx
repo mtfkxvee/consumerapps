@@ -6,7 +6,7 @@ import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
 import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { WHATSAPP_NUMBER } from "../lib/mock-data";
-import { recordError } from "../lib/crashlytics";
+import { getDiagnostics, recordError } from "../lib/crashlytics";
 
 type SettingsRow = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -39,16 +39,43 @@ export function SettingsScreen() {
   ];
 
   // Only ever present in a dev build, never in what ships to customers —
-  // fires a non-fatal test error so a fresh Crashlytics setup can be
-  // confirmed end-to-end (Firebase's own dashboard can take a few minutes
-  // to show a new report).
+  // checks the SDK is actually wired up (native module, Firebase project,
+  // Play Services) instead of just assuming success, since whether the
+  // report actually reaches Firebase's dashboard also depends on a
+  // background upload that's easy to lose track of (delay, no network,
+  // MIUI-style background kill, etc).
   if (__DEV__) {
     rows.push({
       icon: "bug-outline",
-      label: "Tes Crashlytics (dev only)",
-      onPress: () => {
+      label: "Cek Status Crashlytics (dev only)",
+      onPress: async () => {
+        const d = await getDiagnostics();
+        if (!d.moduleLinked) {
+          Alert.alert(
+            "Modul Crashlytics TIDAK terpasang",
+            "Native module tidak ditemukan. Ini bukan masalah jaringan — build APK-nya sendiri belum benar (misal: masih pakai Expo Go, atau APK dari build lama sebelum Crashlytics ditambahkan).",
+          );
+          return;
+        }
+        if (!d.playServicesAvailable) {
+          Alert.alert(
+            "Google Play Services bermasalah",
+            `Modul Crashlytics sudah terpasang, tapi Play Services di HP ini tidak tersedia (${d.playServicesError ?? "tidak diketahui sebabnya"}). Tanpa Play Services, laporan tidak akan pernah terkirim ke Firebase, apa pun yang dilakukan di sisi aplikasi.`,
+          );
+          return;
+        }
         recordError(new Error("Test error dari Pengaturan"), "Manual test dari SettingsScreen");
-        Alert.alert("Terkirim", "Error uji sudah dikirim ke Crashlytics. Cek Firebase Console dalam beberapa menit.");
+        Alert.alert(
+          "Semua terpasang dengan benar",
+          [
+            `App ID: ${d.appId}`,
+            `Project ID: ${d.projectId}`,
+            `Play Services: tersedia`,
+            `Crash sebelumnya: ${d.crashedLastRun ? "ya" : "tidak"}`,
+            "",
+            "Error uji baru saja dikirim. Modul dan Play Services keduanya sehat — kalau laporan tetap tidak muncul di Firebase Console setelah beberapa menit, penyebabnya di pengaturan baterai/latar belakang HP ini (umum di HP Xiaomi/MIUI), bukan di aplikasi.",
+          ].join("\n"),
+        );
       },
     });
   }

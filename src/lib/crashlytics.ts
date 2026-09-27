@@ -1,5 +1,7 @@
-import { getApp } from "@react-native-firebase/app";
+import { getApp, getUtils } from "@react-native-firebase/app";
 import {
+  checkForUnsentReports,
+  didCrashOnPreviousExecution,
   getCrashlytics,
   log as crashlyticsLog,
   recordError as crashlyticsRecordError,
@@ -43,6 +45,60 @@ export function log(message: string): void {
 export function setCrashUser(customerId: string | null): void {
   const inst = instance();
   if (inst) crashlyticsSetUserId(inst, customerId ?? "");
+}
+
+export type CrashlyticsDiagnostics = {
+  moduleLinked: boolean;
+  appId: string | null;
+  projectId: string | null;
+  crashedLastRun: boolean;
+  // null when collection is enabled (the default, and what we set at
+  // startup) — checkForUnsentReports only answers this when collection is
+  // manually disabled, per the SDK's own docs, and throws otherwise.
+  hasUnsentReports: boolean | null;
+  playServicesAvailable: boolean;
+  playServicesError: string | null;
+};
+
+// Real verification, independent of Firebase Console (which depends on a
+// background upload that can be delayed or silently killed — MIUI devices
+// especially). `recordError`/`log` swallow a missing native module on
+// purpose so normal call sites never crash the app over telemetry; this is
+// the one place that surfaces the truth instead of hiding it.
+export async function getDiagnostics(): Promise<CrashlyticsDiagnostics> {
+  const inst = instance();
+  if (!inst) {
+    return {
+      moduleLinked: false,
+      appId: null,
+      projectId: null,
+      crashedLastRun: false,
+      hasUnsentReports: null,
+      playServicesAvailable: false,
+      playServicesError: null,
+    };
+  }
+
+  const crashedLastRun = await didCrashOnPreviousExecution(inst);
+
+  let hasUnsentReports: boolean | null = null;
+  try {
+    hasUnsentReports = await checkForUnsentReports(inst);
+  } catch {
+    // Expected when collection is enabled — not a real failure.
+  }
+
+  const playServices = await getUtils(inst.app).getPlayServicesStatus();
+
+  return {
+    moduleLinked: true,
+    appId: inst.app.options.appId ?? null,
+    projectId: inst.app.options.projectId ?? null,
+    crashedLastRun,
+    hasUnsentReports,
+    playServicesAvailable: playServices.isAvailable,
+    playServicesError: playServices.error ?? null,
+  };
 }
 
 // Catches uncaught JS errors and unhandled promise rejections app-wide —
