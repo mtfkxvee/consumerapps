@@ -3,6 +3,8 @@ import {
   getCrashlytics,
   log as crashlyticsLog,
   recordError as crashlyticsRecordError,
+  sendUnsentReports,
+  setCrashlyticsCollectionEnabled,
   setUserId as crashlyticsSetUserId,
 } from "@react-native-firebase/crashlytics";
 // React Native's own Promise polyfill (bundled as a transitive dependency,
@@ -47,6 +49,15 @@ export function setCrashUser(customerId: string | null): void {
 // otherwise only native crashes reach Crashlytics, and the far more common
 // "red screen" JS error/unhandled rejection goes unreported.
 export function installGlobalErrorHandlers(): void {
+  // Explicit rather than relying on the SDK's own default — and forces any
+  // report already queued on disk from a previous session to upload right
+  // away instead of waiting for the next cold start after that.
+  const inst = instance();
+  if (inst) {
+    setCrashlyticsCollectionEnabled(inst, true);
+    sendUnsentReports(inst);
+  }
+
   const previousHandler = ErrorUtils.getGlobalHandler();
   ErrorUtils.setGlobalHandler((error, isFatal) => {
     recordError(error, isFatal ? "Unhandled fatal JS error" : "Unhandled JS error");
