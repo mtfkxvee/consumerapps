@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
-import { OnboardingBackdrop } from "../components/onboarding/OnboardingBackdrop";
+import { getBackdropScale, OnboardingBackdrop, BACKDROP_UNIT } from "../components/onboarding/OnboardingBackdrop";
 import {
   FastDeliveryIllustration,
   NearestStoreIllustration,
@@ -49,7 +49,7 @@ const CTA_WIDTH = 188;
 
 export function OnboardingScreen({ onFinish }: Props) {
   const insets = useSafeAreaInsets();
-  const { width: screenWidth } = useWindowDimensions();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const pagerRef = useRef<PagerView>(null);
   const [page, setPage] = useState(0);
   const isLast = page === SLIDES.length - 1;
@@ -64,9 +64,15 @@ export function OnboardingScreen({ onFinish }: Props) {
     const { position, offset } = e.nativeEvent;
     scrollProgress.setValue(position + offset);
   };
+  // One backdrop "panel" is BACKDROP_UNIT virtual units wide, uniformly
+  // scaled (see getBackdropScale) rather than stretched — so its real pixel
+  // width isn't screenWidth, it's whatever that uniform scale produces.
+  // Using screenWidth here would desync the pan from what's actually
+  // rendered the moment scale is height-bound instead of width-bound.
+  const panelPixelWidth = BACKDROP_UNIT * getBackdropScale(screenWidth, screenHeight);
   const backdropTranslateX = scrollProgress.interpolate({
     inputRange: [0, SLIDES.length - 1],
-    outputRange: [0, -(SLIDES.length - 1) * screenWidth],
+    outputRange: [0, -(SLIDES.length - 1) * panelPixelWidth],
   });
 
   // Morphs the circular "next" button into the "Mulai Sekarang" pill
@@ -96,7 +102,12 @@ export function OnboardingScreen({ onFinish }: Props) {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <OnboardingBackdrop slideCount={SLIDES.length} screenWidth={screenWidth} translateX={backdropTranslateX} />
+      <OnboardingBackdrop
+        slideCount={SLIDES.length}
+        screenWidth={screenWidth}
+        screenHeight={screenHeight}
+        translateX={backdropTranslateX}
+      />
 
       <View style={styles.header}>
         <Pressable

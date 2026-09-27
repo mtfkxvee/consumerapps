@@ -1,64 +1,77 @@
-import { Animated, StyleSheet } from "react-native";
+import { Animated, StyleSheet, View } from "react-native";
 import Svg, { Circle, G, Path, Rect } from "react-native-svg";
 import { colors } from "../../theme/colors";
 
 // Ported closely from a reference composition the user supplied (waves,
-// a dripping canopy, per-screen spotlight halos, one continuous dashed
-// route threading through with anchor rings at the seams, plus per-screen
-// FMCG/fashion icon clusters) — recolored to X-SHA's own palette rather
-// than the reference's literal hex values, and using the icon shapes
-// already designed/checked earlier in illustrations.tsx and the previous
-// pass here, rather than re-deriving new ones.
+// a dripping canopy, one continuous dashed route threading through with
+// anchor rings at the seams, plus per-screen FMCG/fashion icon clusters) —
+// recolored to X-SHA's own palette rather than the reference's literal hex
+// values, and using the icon shapes already designed/checked earlier in
+// illustrations.tsx and the previous pass here, rather than re-deriving new
+// ones. The reference's spotlight halo behind each illustration was
+// dropped per feedback — redundant with the actual illustrationDisc
+// already sitting there in the foreground.
 //
 // Coordinate system matches the reference 1:1 (640 units per slide, 1080
-// tall) so its relative composition (wave curves, spotlight centers, route
-// path) ports over correctly regardless of the actual device size — the
-// Svg stretches this virtual canvas to fit via preserveAspectRatio="none",
-// same mechanism as before.
-const UNIT = 640;
-const VIEW_HEIGHT = 1080;
+// tall) so its relative composition (wave curves, route path, seam
+// positions) ports over correctly regardless of device size. Scaled
+// UNIFORMLY (getBackdropScale, shared with OnboardingScreen's pan math)
+// rather than stretched independently per axis — the previous
+// preserveAspectRatio="none" approach squashed circles into ellipses since
+// the width and height scale factors rarely match; excess on whichever
+// axis has it is simply cropped by the fixed-size, overflow-hidden
+// viewport wrapping the scaled content, same fix the user suggested.
+export const BACKDROP_UNIT = 640;
+export const BACKDROP_VIEW_HEIGHT = 1080;
+
+export function getBackdropScale(screenWidth: number, screenHeight: number): number {
+  return Math.max(screenWidth / BACKDROP_UNIT, screenHeight / BACKDROP_VIEW_HEIGHT);
+}
 
 export function OnboardingBackdrop({
   slideCount,
   screenWidth,
+  screenHeight,
   translateX,
 }: {
   slideCount: number;
   screenWidth: number;
+  screenHeight: number;
   translateX: Animated.AnimatedInterpolation<number>;
 }) {
-  const totalUnits = UNIT * slideCount;
-  const totalWidth = screenWidth * slideCount;
+  const totalUnits = BACKDROP_UNIT * slideCount;
+  const scale = getBackdropScale(screenWidth, screenHeight);
+  const svgWidth = totalUnits * scale;
+  const svgHeight = BACKDROP_VIEW_HEIGHT * scale;
+  // Uniform scale guarantees svgHeight >= screenHeight (never a gap) —
+  // center the excess vertically so equal amounts crop off top and bottom.
+  const verticalOffset = -(svgHeight - screenHeight) / 2;
 
   return (
-    <Animated.View
-      style={[styles.container, { width: totalWidth, transform: [{ translateX }] }]}
-      pointerEvents="none"
-    >
-      <Svg width={totalWidth} height="100%" viewBox={`0 0 ${totalUnits} ${VIEW_HEIGHT}`} preserveAspectRatio="none">
-        {/* dripping canopy along the top edge */}
-        <Path
-          d="M 0,0 L 200,0 C 220,160 300,220 350,160 C 380,110 430,0 500,0 L 780,0 C 820,180 910,240 980,170 C 1030,120 1060,0 1180,0 L 1460,0 C 1510,170 1590,230 1670,170 C 1720,130 1760,0 1920,0 L 1920,240 C 1800,320 1660,280 1540,340 C 1400,420 1240,310 1100,380 C 920,460 740,310 570,360 C 380,420 200,290 0,350 Z"
-          fill={colors.primaryContainer}
-          opacity={0.22}
-        />
+    <View style={[styles.viewport, { width: screenWidth }]} pointerEvents="none">
+      <Animated.View
+        style={{
+          position: "absolute",
+          top: verticalOffset,
+          left: 0,
+          width: svgWidth,
+          height: svgHeight,
+          transform: [{ translateX }],
+        }}
+      >
+        <Svg width={svgWidth} height={svgHeight} viewBox={`0 0 ${totalUnits} ${BACKDROP_VIEW_HEIGHT}`}>
+          {/* dripping canopy along the top edge */}
+          <Path
+            d="M 0,0 L 200,0 C 220,160 300,220 350,160 C 380,110 430,0 500,0 L 780,0 C 820,180 910,240 980,170 C 1030,120 1060,0 1180,0 L 1460,0 C 1510,170 1590,230 1670,170 C 1720,130 1760,0 1920,0 L 1920,240 C 1800,320 1660,280 1540,340 C 1400,420 1240,310 1100,380 C 920,460 740,310 570,360 C 380,420 200,290 0,350 Z"
+            fill={colors.primaryContainer}
+            opacity={0.22}
+          />
 
-        {/* two overlapping waves along the bottom edge */}
-        <Path d="M 0,720 Q 320,810 640,700 T 1280,670 T 1920,740 L 1920,1080 L 0,1080 Z" fill={colors.onSurface} opacity={0.16} />
-        <Path d="M 0,840 Q 320,750 640,820 T 1280,810 T 1920,790 L 1920,1080 L 0,1080 Z" fill={colors.primaryContainer} opacity={0.45} />
+          {/* two overlapping waves along the bottom edge */}
+          <Path d="M 0,720 Q 320,810 640,700 T 1280,670 T 1920,740 L 1920,1080 L 0,1080 Z" fill={colors.onSurface} opacity={0.16} />
+          <Path d="M 0,840 Q 320,750 640,820 T 1280,810 T 1920,790 L 1920,1080 L 0,1080 Z" fill={colors.primaryContainer} opacity={0.45} />
 
-        {/* soft spotlight halo behind where each slide's illustration sits */}
-        {Array.from({ length: slideCount }).map((_, i) => {
-          const cx = 320 + i * UNIT;
-          return (
-            <G key={`spot-${i}`}>
-              <Circle cx={cx} cy={460} r={190} fill={colors.surface} opacity={0.08} />
-              <Circle cx={cx} cy={460} r={160} fill={colors.surface} opacity={0.06} />
-            </G>
-          );
-        })}
-
-        {/* one continuous dashed route threading through every slide */}
+          {/* one continuous dashed route threading through every slide */}
         <Path
           d="M 140,520 C 300,600 470,610 640,560 C 810,510 1020,650 1280,540 C 1450,470 1620,560 1780,480"
           stroke={colors.tertiaryContainer}
@@ -78,9 +91,9 @@ export function OnboardingBackdrop({
           opacity={0.35}
         />
 
-        {/* anchor rings marking where the route crosses between slides */}
-        {Array.from({ length: slideCount - 1 }).map((_, i) => {
-          const seamX = UNIT * (i + 1);
+          {/* anchor rings marking where the route crosses between slides */}
+          {Array.from({ length: slideCount - 1 }).map((_, i) => {
+            const seamX = BACKDROP_UNIT * (i + 1);
           return (
             <G key={`seam-${i}`}>
               <Circle cx={seamX} cy={280} r={36} stroke={colors.surface} strokeWidth={4} fill="none" opacity={0.4} />
@@ -103,8 +116,9 @@ export function OnboardingBackdrop({
         {ACCENT_RINGS.filter((r) => r.x < totalUnits + 60).map((r, i) => (
           <Circle key={i} cx={r.x} cy={r.y} r={r.r} stroke={colors.primaryContainer} strokeWidth={4} fill="none" opacity={0.4} />
         ))}
-      </Svg>
-    </Animated.View>
+        </Svg>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -240,7 +254,9 @@ const ACCENT_RINGS: { x: number; y: number; r: number }[] = [
 ];
 
 const styles = StyleSheet.create({
-  // Deliberately not StyleSheet.absoluteFill — that also pins `right: 0`,
-  // which would fight the explicit (wider-than-screen) width set inline.
-  container: { position: "absolute", top: 0, left: 0, bottom: 0 },
+  // Fixed-size clipping viewport (explicit width, not the wide scaled
+  // content's width) — the scaled+panned content is a child of this, and
+  // overflow: hidden is what actually crops the excess the uniform scale
+  // produces on whichever axis wasn't the binding constraint.
+  viewport: { position: "absolute", top: 0, left: 0, bottom: 0, overflow: "hidden" },
 });
