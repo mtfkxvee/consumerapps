@@ -83,39 +83,35 @@ export function ShopNeedsIllustration({ size = 120 }: Props) {
   );
 }
 
-// A delivery scooter with a parcel box on the back rack — "fast delivery".
+// A delivery scooter with a parcel box on the back — "fast delivery".
+// Built from a few overlapping rounded shapes sharing one fill (a low
+// chassis pill + a tall front blob merge into one silhouette) rather than
+// one hand-drawn body path — far more forgiving than a custom path, and it
+// reads immediately as a friendly, rounded scooter instead of the sharp,
+// disconnected shapes the first two attempts produced.
 export function FastDeliveryIllustration({ size = 120 }: Props) {
   return (
     <Svg width={size} height={size} viewBox="0 0 120 120" fill="none">
       <Ellipse cx="58" cy="98" rx="42" ry="5" fill={colors.primary} opacity={0.12} />
-      {/* rear wheel */}
-      <Circle cx="30" cy="86" r="11" fill={colors.onSurface} />
-      <Circle cx="30" cy="86" r="4.5" fill={colors.surface} />
-      {/* front wheel */}
-      <Circle cx="92" cy="86" r="11" fill={colors.onSurface} />
-      <Circle cx="92" cy="86" r="4.5" fill={colors.surface} />
-      {/* chunky body silhouette: rear hump -> seat -> front legshield */}
-      <Path
-        d="M18 88
-           C16 76, 20 66, 30 62
-           C36 59, 44 59, 50 63
-           L60 63
-           C64 63, 67 61, 69 57
-           C72 49, 80 41, 90 39
-           C96 38, 101 42, 99 49
-           L95 60
-           C93 70, 91 79, 88 88
-           C80 92, 32 92, 18 88 Z"
-        fill={colors.primary}
-      />
-      {/* seat cushion */}
-      <Rect x="48" y="58" width="18" height="7" rx="3.5" fill={colors.onSurface} opacity={0.55} />
-      {/* windshield */}
-      <Path d="M76 52 C79 45, 87 40, 94 41 C96 44, 95 49, 92 52 Z" fill={colors.secondary} opacity={0.9} />
-      {/* delivery box on rear rack */}
-      <Rect x="13" y="42" width="29" height="30" rx="4" fill={colors.tertiaryContainer} />
-      <Rect x="18" y="49" width="19" height="4" rx="2" fill={colors.surface} opacity={0.75} />
-      <Rect x="18" y="57" width="19" height="4" rx="2" fill={colors.surface} opacity={0.75} />
+      {/* wheels */}
+      <Circle cx="34" cy="88" r="11" fill={colors.onSurface} />
+      <Circle cx="34" cy="88" r="4.5" fill={colors.surface} />
+      <Circle cx="88" cy="88" r="11" fill={colors.onSurface} />
+      <Circle cx="88" cy="88" r="4.5" fill={colors.surface} />
+      {/* chassis + front blob (same fill, merge into one silhouette) */}
+      <Rect x="24" y="70" width="72" height="18" rx="9" fill={colors.primary} />
+      <Rect x="74" y="46" width="26" height="34" rx="13" fill={colors.primary} />
+      {/* seat */}
+      <Rect x="52" y="63" width="18" height="9" rx="4.5" fill={colors.onSurface} opacity={0.55} />
+      {/* visor stripe */}
+      <Rect x="79" y="53" width="16" height="5" rx="2.5" fill={colors.primaryFixed} opacity={0.9} />
+      {/* handlebar */}
+      <Rect x="93" y="40" width="4" height="12" rx="2" fill={colors.onSurface} />
+      <Rect x="88" y="37" width="14" height="4.5" rx="2.25" fill={colors.onSurface} />
+      {/* delivery box */}
+      <Rect x="13" y="43" width="31" height="31" rx="6" fill={colors.tertiaryContainer} />
+      <Rect x="19" y="51" width="19" height="4" rx="2" fill={colors.surface} opacity={0.75} />
+      <Rect x="19" y="60" width="19" height="4" rx="2" fill={colors.surface} opacity={0.75} />
     </Svg>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Animated, StyleSheet, View } from "react-native";
+import { Animated, StyleSheet, useWindowDimensions, View } from "react-native";
 import PagerView, { type PagerViewOnPageScrollEvent } from "react-native-pager-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,20 +15,14 @@ import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 
 type Slide = {
   key: string;
-  bgColor: string;
   Illustration: (props: { size?: number }) => React.JSX.Element;
   title: string;
   subtitle: string;
 };
 
-// Each slide has its own tint from the same violet family already in the
-// palette — distinct enough to tell slides apart, close enough that
-// interpolating between them (see bgColor below) reads as one continuous
-// wash rather than a hard cut.
 const SLIDES: Slide[] = [
   {
     key: "nearest-store",
-    bgColor: colors.primary,
     Illustration: NearestStoreIllustration,
     title: "Temukan Toko X-SHA Terdekat",
     subtitle:
@@ -36,14 +30,12 @@ const SLIDES: Slide[] = [
   },
   {
     key: "shop-needs",
-    bgColor: colors.primaryContainer,
     Illustration: ShopNeedsIllustration,
     title: "Pilih Kebutuhan Harianmu",
     subtitle: "Belanja sembako, perlengkapan rumah tangga, hingga camilan favorit dengan diskon dan promo spesial setiap hari.",
   },
   {
     key: "fast-delivery",
-    bgColor: colors.secondary,
     Illustration: FastDeliveryIllustration,
     title: "Pengantaran Cepat ke Rumah",
     subtitle: "Pesanan kebutuhan pokok dan belanjaanmu langsung diantar kilat sampai depan pintu, aman dan praktis.",
@@ -54,25 +46,24 @@ type Props = { onFinish: () => void };
 
 export function OnboardingScreen({ onFinish }: Props) {
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
   const pagerRef = useRef<PagerView>(null);
   const [page, setPage] = useState(0);
   const isLast = page === SLIDES.length - 1;
 
   // Continuous 0..2 value tracking real-time drag position (not just the
-  // settled page index), so the background tween follows the finger during
-  // a swipe instead of snapping only once a page change commits.
+  // settled page index), so the backdrop pans with the finger during a
+  // swipe instead of snapping only once a page change commits. The page's
+  // own background color stays a constant colors.primary — only this
+  // decorative backdrop moves.
   const scrollProgress = useRef(new Animated.Value(0)).current;
   const handlePageScroll = (e: PagerViewOnPageScrollEvent) => {
     const { position, offset } = e.nativeEvent;
     scrollProgress.setValue(position + offset);
   };
-  const backgroundColor = scrollProgress.interpolate({
-    inputRange: SLIDES.map((_, i) => i),
-    outputRange: SLIDES.map((s) => s.bgColor),
-  });
   const backdropTranslateX = scrollProgress.interpolate({
     inputRange: [0, SLIDES.length - 1],
-    outputRange: [0, -40],
+    outputRange: [0, -(SLIDES.length - 1) * screenWidth],
   });
 
   const goToPage = (index: number) => {
@@ -80,10 +71,8 @@ export function OnboardingScreen({ onFinish }: Props) {
   };
 
   return (
-    <Animated.View style={[styles.container, { backgroundColor }, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ translateX: backdropTranslateX }] }]}>
-        <OnboardingBackdrop />
-      </Animated.View>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      <OnboardingBackdrop slideCount={SLIDES.length} screenWidth={screenWidth} translateX={backdropTranslateX} />
 
       <View style={styles.header}>
         <Pressable
@@ -108,11 +97,7 @@ export function OnboardingScreen({ onFinish }: Props) {
         ))}
       </PagerView>
 
-      <View style={styles.dotsRow}>
-        {SLIDES.map((slide, index) => (
-          <View key={slide.key} style={[styles.dot, index === page && styles.dotActive]} />
-        ))}
-      </View>
+      <PaginationDots count={SLIDES.length} scrollProgress={scrollProgress} />
 
       <View style={styles.footer}>
         <Pressable onPress={onFinish} hitSlop={8}>
@@ -129,7 +114,38 @@ export function OnboardingScreen({ onFinish }: Props) {
           </Pressable>
         )}
       </View>
-    </Animated.View>
+    </View>
+  );
+}
+
+// A track of small static dots with one pill-shaped indicator sliding on
+// top, driven directly by scrollProgress (the same position+offset the
+// PagerView itself reports) rather than snapping between index === page
+// states — it tracks the finger mid-swipe and rides the same native settle
+// animation the page content does on release, instead of jumping the
+// instant the active index changes.
+const DOT_SIZE = 8;
+const DOT_GAP = 8;
+const PILL_WIDTH = 24;
+
+function PaginationDots({ count, scrollProgress }: { count: number; scrollProgress: Animated.Value }) {
+  const stride = DOT_SIZE + DOT_GAP;
+  const centers = Array.from({ length: count }, (_, i) => i * stride + DOT_SIZE / 2);
+  const pillTranslateX = scrollProgress.interpolate({
+    inputRange: centers.map((_, i) => i),
+    outputRange: centers.map((c) => c - PILL_WIDTH / 2),
+  });
+  const trackWidth = count * DOT_SIZE + (count - 1) * DOT_GAP;
+
+  return (
+    <View style={styles.dotsRow}>
+      <View style={[styles.dotsTrack, { width: trackWidth }]}>
+        {Array.from({ length: count }).map((_, i) => (
+          <View key={i} style={styles.dot} />
+        ))}
+        <Animated.View style={[styles.pill, { transform: [{ translateX: pillTranslateX }] }]} />
+      </View>
+    </View>
   );
 }
 
@@ -209,19 +225,30 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   dotsRow: {
-    flexDirection: "row",
-    justifyContent: "center",
     alignItems: "center",
-    gap: spacing.xs,
+    justifyContent: "center",
     marginBottom: spacing.lg,
   },
+  dotsTrack: {
+    height: DOT_SIZE,
+    flexDirection: "row",
+    gap: DOT_GAP,
+  },
   dot: {
-    width: 8,
-    height: 8,
+    width: DOT_SIZE,
+    height: DOT_SIZE,
     borderRadius: radius.full,
     backgroundColor: "rgba(255,255,255,0.35)",
   },
-  dotActive: { width: 24, backgroundColor: colors.tertiaryContainer },
+  pill: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    width: PILL_WIDTH,
+    height: DOT_SIZE,
+    borderRadius: radius.full,
+    backgroundColor: colors.tertiaryContainer,
+  },
   footer: {
     flexDirection: "row",
     alignItems: "center",

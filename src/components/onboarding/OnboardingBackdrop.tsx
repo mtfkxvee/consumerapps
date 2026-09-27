@@ -1,44 +1,75 @@
-import { StyleSheet, View } from "react-native";
-import Svg, { Circle, Path } from "react-native-svg";
+import { Animated, StyleSheet } from "react-native";
+import Svg, { Path, Rect } from "react-native-svg";
 import { colors } from "../../theme/colors";
 
-// Decorative full-bleed backdrop for the onboarding violet background —
-// rounded "drip" bars hanging from the top edge, a dashed way-finding path
-// with a location pin, and a scatter of small sparkles/dots. One consistent
-// design reused across all 3 slides (not a unique one per screen) so the
-// palette and motif stay coherent end to end.
-export function OnboardingBackdrop() {
-  return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <View style={styles.dripRow}>
-        {DRIP_HEIGHTS.map((h, i) => (
-          <View key={i} style={[styles.drip, { height: h }]} />
-        ))}
-      </View>
+// One wide virtual canvas (400 units per slide) rather than one backdrop per
+// slide — a single dashed "journey" line winds continuously through all 3
+// panels, and the top drip shapes tile continuously across the whole
+// width. Panned by `translateX` (driven by real swipe position, see
+// OnboardingScreen) so the background visibly slides as you move between
+// slides, while the page's own solid color stays constant.
+export function OnboardingBackdrop({
+  slideCount,
+  screenWidth,
+  translateX,
+}: {
+  slideCount: number;
+  screenWidth: number;
+  translateX: Animated.AnimatedInterpolation<number>;
+}) {
+  const unit = 400; // virtual units per slide, independent of actual device width
+  const totalUnits = unit * slideCount;
+  const totalWidth = screenWidth * slideCount;
 
-      <Svg style={StyleSheet.absoluteFill} viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice">
+  const dripXs: number[] = [];
+  for (let x = 20; x < totalUnits; x += 64) dripXs.push(x);
+
+  const sparkleXs = [70, 250, 340, 520, 610, 780, 900, 1050];
+
+  return (
+    <Animated.View
+      style={[styles.container, { width: totalWidth, transform: [{ translateX }] }]}
+      pointerEvents="none"
+    >
+      <Svg width={totalWidth} height="100%" viewBox={`0 0 ${totalUnits} 800`} preserveAspectRatio="none">
+        {dripXs.map((x, i) => (
+          <Rect key={i} x={x} y={0} width={26} height={i % 2 === 0 ? 78 : 56} rx={13} fill={colors.surface} opacity={0.08} />
+        ))}
+
         <Path
-          d="M20 260 C 110 285, 200 310, 260 285 C 300 268, 330 255, 360 250"
+          d={buildJourneyPath(totalUnits)}
           stroke={colors.tertiaryContainer}
           strokeWidth={3}
           strokeDasharray="9 7"
           strokeLinecap="round"
-          opacity={0.55}
+          opacity={0.5}
           fill="none"
         />
-        <Circle cx="360" cy="250" r="5" fill={colors.tertiaryContainer} opacity={0.85} />
 
-        <Sparkle x={44} y={150} size={14} opacity={0.22} />
-        <Sparkle x={340} y={130} size={18} opacity={0.2} />
-        <Sparkle x={70} y={600} size={16} opacity={0.2} />
-        <Sparkle x={330} y={560} size={12} opacity={0.22} />
-
-        <Circle cx="56" cy="320" r="4" fill={colors.surface} opacity={0.18} />
-        <Circle cx="350" cy="420" r="5" fill={colors.tertiaryContainer} opacity={0.25} />
-        <Circle cx="90" cy="480" r="3.5" fill={colors.surface} opacity={0.2} />
+        {sparkleXs.map((x, i) => (
+          <Sparkle key={i} x={x} y={140 + ((i * 97) % 480)} size={12 + (i % 3) * 4} opacity={0.18 + (i % 2) * 0.06} />
+        ))}
       </Svg>
-    </View>
+    </Animated.View>
   );
+}
+
+// A single winding dashed line covering the whole canvas — reads as one
+// continuous route rather than 3 separate decorations.
+function buildJourneyPath(totalUnits: number): string {
+  const points: [number, number][] = [];
+  const step = 200;
+  let y = 260;
+  for (let x = 0; x <= totalUnits; x += step) {
+    points.push([x, y]);
+    y = y === 260 ? 420 : 260;
+  }
+  return points.reduce((d, [x, y], i) => {
+    if (i === 0) return `M${x} ${y}`;
+    const [px, py] = points[i - 1];
+    const midX = (px + x) / 2;
+    return `${d} C${midX} ${py}, ${midX} ${y}, ${x} ${y}`;
+  }, "");
 }
 
 function Sparkle({ x, y, size, opacity }: { x: number; y: number; size: number; opacity: number }) {
@@ -52,23 +83,8 @@ function Sparkle({ x, y, size, opacity }: { x: number; y: number; size: number; 
   );
 }
 
-const DRIP_HEIGHTS = [70, 110, 84, 96, 64];
-
 const styles = StyleSheet.create({
-  dripRow: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 22,
-  },
-  drip: {
-    width: 34,
-    backgroundColor: colors.surface,
-    opacity: 0.08,
-    borderBottomLeftRadius: 999,
-    borderBottomRightRadius: 999,
-  },
+  // Deliberately not StyleSheet.absoluteFill — that also pins `right: 0`,
+  // which would fight the explicit (wider-than-screen) width set inline.
+  container: { position: "absolute", top: 0, left: 0, bottom: 0 },
 });
