@@ -1,7 +1,10 @@
+import { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { HomeScreen } from "../screens/HomeScreen";
+import { OnboardingScreen } from "../screens/OnboardingScreen";
 import { CatalogScreen } from "../screens/CatalogScreen";
 import { SearchScreen } from "../screens/SearchScreen";
 import { PromoScreen } from "../screens/PromoScreen";
@@ -96,8 +99,34 @@ function MainTabs() {
   );
 }
 
+const ONBOARDING_KEY = "xsha_onboarding_seen";
+
 export function RootNavigator() {
   const { needsProfileCompletion } = useAuth();
+  const [checkedOnboarding, setCheckedOnboarding] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem(ONBOARDING_KEY)
+      .then((seen) => setShowOnboarding(seen !== "1"))
+      .catch(() => setShowOnboarding(true))
+      .finally(() => setCheckedOnboarding(true));
+  }, []);
+
+  // Shown once, ever, before anything else (even auth) — a brand-new
+  // install's very first screen. Persisted so it never reappears once
+  // dismissed, on this device, regardless of login state.
+  if (!checkedOnboarding) return null;
+  if (showOnboarding) {
+    return (
+      <OnboardingScreen
+        onFinish={() => {
+          setShowOnboarding(false);
+          AsyncStorage.setItem(ONBOARDING_KEY, "1").catch(() => {});
+        }}
+      />
+    );
+  }
 
   // A fresh Google sign-up only has an email + display name in ERPNext —
   // block the whole app on the completion form before anything (browsing is
