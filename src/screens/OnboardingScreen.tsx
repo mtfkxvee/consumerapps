@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Animated, StyleSheet, View } from "react-native";
-import PagerView from "react-native-pager-view";
+import PagerView, { type PagerViewOnPageScrollEvent } from "react-native-pager-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "../components/Text";
@@ -15,14 +15,20 @@ import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 
 type Slide = {
   key: string;
+  bgColor: string;
   Illustration: (props: { size?: number }) => React.JSX.Element;
   title: string;
   subtitle: string;
 };
 
+// Each slide has its own tint from the same violet family already in the
+// palette — distinct enough to tell slides apart, close enough that
+// interpolating between them (see bgColor below) reads as one continuous
+// wash rather than a hard cut.
 const SLIDES: Slide[] = [
   {
     key: "nearest-store",
+    bgColor: colors.primary,
     Illustration: NearestStoreIllustration,
     title: "Temukan Toko X-SHA Terdekat",
     subtitle:
@@ -30,12 +36,14 @@ const SLIDES: Slide[] = [
   },
   {
     key: "shop-needs",
+    bgColor: colors.primaryContainer,
     Illustration: ShopNeedsIllustration,
     title: "Pilih Kebutuhan Harianmu",
     subtitle: "Belanja sembako, perlengkapan rumah tangga, hingga camilan favorit dengan diskon dan promo spesial setiap hari.",
   },
   {
     key: "fast-delivery",
+    bgColor: colors.secondary,
     Illustration: FastDeliveryIllustration,
     title: "Pengantaran Cepat ke Rumah",
     subtitle: "Pesanan kebutuhan pokok dan belanjaanmu langsung diantar kilat sampai depan pintu, aman dan praktis.",
@@ -50,13 +58,32 @@ export function OnboardingScreen({ onFinish }: Props) {
   const [page, setPage] = useState(0);
   const isLast = page === SLIDES.length - 1;
 
+  // Continuous 0..2 value tracking real-time drag position (not just the
+  // settled page index), so the background tween follows the finger during
+  // a swipe instead of snapping only once a page change commits.
+  const scrollProgress = useRef(new Animated.Value(0)).current;
+  const handlePageScroll = (e: PagerViewOnPageScrollEvent) => {
+    const { position, offset } = e.nativeEvent;
+    scrollProgress.setValue(position + offset);
+  };
+  const backgroundColor = scrollProgress.interpolate({
+    inputRange: SLIDES.map((_, i) => i),
+    outputRange: SLIDES.map((s) => s.bgColor),
+  });
+  const backdropTranslateX = scrollProgress.interpolate({
+    inputRange: [0, SLIDES.length - 1],
+    outputRange: [0, -40],
+  });
+
   const goToPage = (index: number) => {
     pagerRef.current?.setPage(index);
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <OnboardingBackdrop />
+    <Animated.View style={[styles.container, { backgroundColor }, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ translateX: backdropTranslateX }] }]}>
+        <OnboardingBackdrop />
+      </Animated.View>
 
       <View style={styles.header}>
         <Pressable
@@ -74,6 +101,7 @@ export function OnboardingScreen({ onFinish }: Props) {
         style={{ flex: 1 }}
         initialPage={0}
         onPageSelected={(e) => setPage(e.nativeEvent.position)}
+        onPageScroll={handlePageScroll}
       >
         {SLIDES.map((slide, index) => (
           <OnboardingSlide key={slide.key} slide={slide} active={page === index} />
@@ -101,7 +129,7 @@ export function OnboardingScreen({ onFinish }: Props) {
           </Pressable>
         )}
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
