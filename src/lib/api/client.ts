@@ -14,9 +14,14 @@ export function isApiConfigured(): boolean {
 // The backend can return relative asset paths (e.g. its own placeholder
 // image) alongside absolute ERPNext file URLs — resolve the relative ones
 // against the API host so <Image> always gets something loadable.
+// Release Android builds block cleartext http:// by default, and the backend
+// has been handing back http:// image URLs behind its TLS-terminating proxy
+// (they only redirect to https after the blocked request). Upgrade them here
+// so banners load in APKs, not just in Expo Go where cleartext is allowed.
 export function resolveImageUrl(url: string): string {
-  if (!API_URL || !url.startsWith("/")) return url;
-  return `${API_URL}${url}`;
+  const upgraded = url.replace(/^http:\/\/x-sha\.id\//, "https://x-sha.id/");
+  if (!API_URL || !upgraded.startsWith("/")) return upgraded;
+  return `${API_URL}${upgraded}`;
 }
 
 const TOKEN_KEY = "xsha_auth_token";
