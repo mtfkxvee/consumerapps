@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { NavigationContainer } from "@react-navigation/native";
+import { Platform } from "react-native";
+import * as Notifications from "expo-notifications";
+import { NavigationContainer, useNavigation } from "@react-navigation/native";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -39,6 +41,35 @@ const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const CatalogStack = createNativeStackNavigator<CatalogStackParamList>();
 const SearchStack = createNativeStackNavigator<SearchStackParamList>();
 const PromoStack = createNativeStackNavigator<PromoStackParamList>();
+
+// Opens the order a push notification is about when the customer taps it —
+// both while the app is running and when the tap is what launched it.
+// Rendered inside NavigationContainer so `navigation` is always ready.
+function PushNavigationHandler() {
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+
+    const open = (response: Notifications.NotificationResponse | null) => {
+      if (!response || response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
+      const data = response.notification.request.content.data;
+      if (data?.type === "delivery" && typeof data.orderId === "string") {
+        (navigation.navigate as (name: string, params?: object) => void)("OrderDetail", {
+          id: data.orderId,
+          source: "pesanan",
+        });
+      }
+      Notifications.clearLastNotificationResponse();
+    };
+
+    open(Notifications.getLastNotificationResponse());
+    const sub = Notifications.addNotificationResponseReceivedListener(open);
+    return () => sub.remove();
+  }, [navigation]);
+
+  return null;
+}
 
 function HomeStackNavigator() {
   return (
@@ -137,6 +168,7 @@ export function RootNavigator() {
 
   return (
     <NavigationContainer>
+      <PushNavigationHandler />
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
         <RootStack.Screen name="MainTabs" component={MainTabs} />
         <RootStack.Screen

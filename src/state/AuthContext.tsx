@@ -8,6 +8,7 @@ import {
 } from "../lib/api/auth";
 import type { CurrentUser } from "../lib/types";
 import { setCrashUser } from "../lib/crashlytics";
+import { registerForPushNotifications, unregisterPushNotifications } from "../lib/pushNotifications";
 
 type AuthContextValue = {
   user: CurrentUser | null;
@@ -51,6 +52,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refresh();
   }, [refresh]);
 
+  // Registers this device for order-update pushes once a customer is signed
+  // in (re-runs on account switch; the server de-dupes per token).
+  const customerId = user?.customer?.id ?? null;
+  useEffect(() => {
+    if (customerId) registerForPushNotifications();
+  }, [customerId]);
+
   const login = useCallback(
     async (usr: string, pwd: string) => {
       const res = await loginCustomer(usr, pwd);
@@ -89,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(async () => {
+    await unregisterPushNotifications();
     await logoutCustomer();
     setUser(null);
     setCrashUser(null);
