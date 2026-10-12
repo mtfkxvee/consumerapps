@@ -89,7 +89,15 @@ export type OrderLine = {
 export type OrderStage = "unpaid" | "preparing" | "shipping" | "completed";
 
 export type Pesanan = {
+  // The Quotation — stable key for detail / resume-payment lookups.
   id: string;
+  // The document number to show the customer for the current stage:
+  // Quotation while unpaid, Sales Order while preparing/shipping, and the
+  // Sales Invoice once delivered.
+  displayId: string;
+  salesOrderId: string | null;
+  // Only set once the order is delivered ("completed").
+  invoiceId: string | null;
   date: string;
   status: string;
   total: number;

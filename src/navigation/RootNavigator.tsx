@@ -58,6 +58,7 @@ function PushNavigationHandler() {
         (navigation.navigate as (name: string, params?: object) => void)("OrderDetail", {
           id: data.orderId,
           source: "pesanan",
+          label: typeof data.label === "string" ? data.label : undefined,
         });
       }
       Notifications.clearLastNotificationResponse();

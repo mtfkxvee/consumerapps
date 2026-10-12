@@ -28,7 +28,11 @@ const TABS: { key: Tab; label: string }[] = [
 // directly. Every row is tappable; `source` tells OrderDetailScreen which
 // endpoint to resolve the item breakdown from (Quotation vs Sales Invoice).
 type Row = {
+  // Key used to open the detail / resume payment (the Quotation for app
+  // orders, or the Sales Invoice for a delivered one).
   id: string;
+  // The document number shown to the customer for the row's stage.
+  label: string;
   date: string;
   total: number;
   statusText: string;
@@ -69,7 +73,9 @@ export function OrdersScreen() {
       .filter((p) => p.stage === tabKey)
       .map(
         (p): Row => ({
-          id: p.id,
+          // A delivered order is shown (and opened) as its Sales Invoice.
+          id: tabKey === "completed" && p.invoiceId ? p.invoiceId : p.id,
+          label: p.displayId,
           date: p.date,
           total: p.total,
           statusText:
@@ -81,15 +87,21 @@ export function OrdersScreen() {
                   ? "Sedang Disiapkan"
                   : "Diterima",
           resumable: tabKey === "unpaid",
-          source: "pesanan",
+          source: tabKey === "completed" && p.invoiceId ? "invoice" : "pesanan",
         }),
       );
 
     if (tabKey !== "completed") return fromPesanan;
 
-    const fromInvoices = (invoices ?? []).map(
+    // A delivered app order already appears above as its Sales Invoice —
+    // don't list the same invoice twice.
+    const shown = new Set(fromPesanan.map((r) => r.id));
+    const fromInvoices = (invoices ?? [])
+      .filter((o) => !shown.has(o.id))
+      .map(
       (o): Row => ({
         id: o.id,
+        label: o.id,
         date: o.date,
         total: o.total,
         statusText: o.status,
@@ -203,12 +215,12 @@ export function OrdersScreen() {
                         onPress={() =>
                           (navigation.navigate as (name: string, params?: object) => void)(
                             "OrderDetail",
-                            { id: row.id, source: row.source },
+                            { id: row.id, source: row.source, label: row.label },
                           )
                         }
                       >
                         <View style={styles.cardTopRow}>
-                          <Text style={styles.orderId}>{row.id}</Text>
+                          <Text style={styles.orderId}>{row.label}</Text>
                           <View style={styles.statusBadge}>
                             <Text style={styles.statusText}>{row.statusText}</Text>
                           </View>

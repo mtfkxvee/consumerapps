@@ -12,7 +12,11 @@ import { getOrderDetail, getQuotationDetail } from "../lib/api/orders";
 export function OrderDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { id, source } = route.params as { id: string; source?: "pesanan" | "invoice" };
+  const { id, source, label } = route.params as {
+    id: string;
+    source?: "pesanan" | "invoice";
+    label?: string;
+  };
 
   const {
     data: order,
@@ -53,7 +57,7 @@ export function OrderDetailScreen() {
             <View style={styles.summaryCard}>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>No. Pesanan</Text>
-                <Text style={styles.summaryValue}>{order.id}</Text>
+                <Text style={styles.summaryValue}>{label ?? order.id}</Text>
               </View>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Tanggal</Text>

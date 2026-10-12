@@ -52,7 +52,7 @@ export type RootStackParamList = {
   EditProfile: undefined;
   Settings: undefined;
   Orders: undefined;
-  OrderDetail: { id: string };
+  OrderDetail: { id: string; source?: "pesanan" | "invoice"; label?: string };
   Notifications: undefined;
   PaymentResult: { orderId: string };
   PaymentWebView: { orderId: string; paymentUrl: string };
