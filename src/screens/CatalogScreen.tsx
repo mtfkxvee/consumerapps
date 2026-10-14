@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
-import { useQuery } from "@tanstack/react-query";
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from "react-native";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Screen } from "../components/Screen";
 import { ProductCard } from "../components/ProductCard";
@@ -62,12 +62,7 @@ export function CatalogScreen({ navigation, route }: Props) {
   const [category, setCategory] = useState("");
   const [subCategory, setSubCategory] = useState("");
   const [sort, setSort] = useState<ProductQuery["sort"]>("relevance");
-  const [page, setPage] = useState(1);
   const query = route.params?.q ?? "";
-
-  useEffect(() => {
-    setPage(1);
-  }, [selectedOutlet]);
 
   const { data: departments } = useQuery({
     queryKey: ["item-groups", "root"],
@@ -104,26 +99,36 @@ export function CatalogScreen({ navigation, route }: Props) {
       itemGroupIsGroup: selected?.isGroup,
       warehouse: selectedOutlet?.warehouse ?? undefined,
       sort,
-      page,
       pageSize: PAGE_SIZE,
     }),
-    [query, selected, selectedOutlet, sort, page],
+    [query, selected, selectedOutlet, sort],
   );
 
+  // Pages load as the shopper scrolls — no Sebelumnya/Berikutnya buttons.
   const {
     data,
     isLoading,
     isFetching,
+    isFetchingNextPage,
     isError,
     refetch,
-  } = useQuery({
-    queryKey: ["products", productQuery],
-    queryFn: () => getProducts(productQuery),
+    fetchNextPage,
+    hasNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["products-infinite", productQuery],
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) => getProducts({ ...productQuery, page: pageParam }),
+    getNextPageParam: (last, pages) =>
+      pages.length * PAGE_SIZE < last.total ? pages.length + 1 : undefined,
   });
 
-  const products = data?.products ?? [];
-  const total = data?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  // The same product can land on two pages if stock shifts while scrolling.
+  const products = useMemo(() => {
+    const seen = new Set<string>();
+    return (data?.pages ?? [])
+      .flatMap((p) => p.products)
+      .filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)));
+  }, [data]);
 
   return (
     <Screen>
@@ -141,7 +146,6 @@ export function CatalogScreen({ navigation, route }: Props) {
             setDepartment(name);
             setCategory("");
             setSubCategory("");
-            setPage(1);
           }}
         />
 
@@ -153,7 +157,6 @@ export function CatalogScreen({ navigation, route }: Props) {
             onSelect={(name) => {
               setCategory(name);
               setSubCategory("");
-              setPage(1);
             }}
           />
         )}
@@ -165,7 +168,6 @@ export function CatalogScreen({ navigation, route }: Props) {
             selected={subCategory}
             onSelect={(name) => {
               setSubCategory(name);
-              setPage(1);
             }}
           />
         )}
@@ -183,7 +185,6 @@ export function CatalogScreen({ navigation, route }: Props) {
               style={[styles.sortChip, sort === s.value && styles.sortChipActive]}
               onPress={() => {
                 setSort(s.value);
-                setPage(1);
               }}
             >
               <Text style={[styles.sortText, sort === s.value && styles.sortTextActive]}>
@@ -238,26 +239,14 @@ export function CatalogScreen({ navigation, route }: Props) {
             />
           </View>
         )}
+        onEndReachedThreshold={0.6}
+        onEndReached={() => {
+          if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+        }}
         ListFooterComponent={
-          totalPages > 1 ? (
-            <View style={styles.pagination}>
-              <Pressable
-                style={[styles.pageButton, page <= 1 && styles.pageButtonDisabled]}
-                disabled={page <= 1}
-                onPress={() => setPage((p) => Math.max(1, p - 1))}
-              >
-                <Text style={styles.pageButtonText}>Sebelumnya</Text>
-              </Pressable>
-              <Text style={styles.pageInfo}>
-                {page} / {totalPages}
-              </Text>
-              <Pressable
-                style={[styles.pageButton, page >= totalPages && styles.pageButtonDisabled]}
-                disabled={page >= totalPages}
-                onPress={() => setPage((p) => Math.min(totalPages, p + 1))}
-              >
-                <Text style={styles.pageButtonText}>Berikutnya</Text>
-              </Pressable>
+          isFetchingNextPage ? (
+            <View style={{ paddingVertical: spacing.md }}>
+              <ActivityIndicator color={colors.primary} />
             </View>
           ) : null
         }

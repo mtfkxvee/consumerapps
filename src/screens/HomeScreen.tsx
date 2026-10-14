@@ -10,6 +10,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useQuery } from "@tanstack/react-query";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Screen } from "../components/Screen";
@@ -24,6 +25,7 @@ import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { useCart } from "../state/CartContext";
 import { useAuth } from "../state/AuthContext";
 import { useTabBarSpace } from "../hooks/useTabBarSpace";
+import { useUnreadNotifications } from "../hooks/useUnreadNotifications";
 import {
   getItemGroupChildren,
   getPromoBanners,
@@ -34,6 +36,16 @@ import { getMyLoyaltyStatus } from "../lib/api/loyalty";
 import type { HomeStackParamList } from "../navigation/types";
 
 const HEADER_IMAGE = require("../../assets/login-hero.jpg");
+
+// colors.primary (#3D1F73) at decreasing strength, top to bottom. Spelled as
+// rgba rather than "transparent" so Android doesn't blend through grey.
+const HEADER_GRADIENT_COLORS = [
+  "rgba(61, 31, 115, 0.88)",
+  "rgba(61, 31, 115, 0.55)",
+  "rgba(61, 31, 115, 0)",
+  "rgba(61, 31, 115, 0)",
+] as const;
+const HEADER_GRADIENT_LOCATIONS = [0, 0.3, 0.55, 1] as const;
 
 const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   FASHION: "shirt-outline",
@@ -53,6 +65,7 @@ export function HomeScreen({ navigation }: Props) {
   const { add } = useCart();
   const { width } = useWindowDimensions();
   const { user, isLoggedIn } = useAuth();
+  const unreadNotifications = useUnreadNotifications();
   const tabBarSpace = useTabBarSpace();
   const [searchText, setSearchText] = useState("");
 
@@ -183,7 +196,16 @@ export function HomeScreen({ navigation }: Props) {
           style={styles.header}
           imageStyle={styles.headerImage}
         >
-          <View style={styles.headerOverlay} />
+          {/* The photo shows through; only the top is tinted, fading to
+              nothing by the middle, so the greeting stays readable. */}
+          <LinearGradient
+            colors={HEADER_GRADIENT_COLORS}
+            locations={HEADER_GRADIENT_LOCATIONS}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={styles.headerGradient}
+            pointerEvents="none"
+          />
 
           <Text style={styles.greeting}>
             Selamat datang,{"\n"}
@@ -357,13 +379,19 @@ export function HomeScreen({ navigation }: Props) {
         <Pressable
           style={[styles.notifButton, scrolled ? styles.notifButtonDark : styles.notifButtonLight]}
           onPress={() => navigation.navigate("Notifications" as never)}
+          accessibilityRole="button"
+          accessibilityLabel={
+            unreadNotifications > 0
+              ? `Notifikasi, ${unreadNotifications} belum dibaca`
+              : "Notifikasi"
+          }
         >
           <Ionicons
             name="notifications-outline"
             size={18}
             color={scrolled ? colors.onSurface : colors.onPrimary}
           />
-          <View style={styles.notifBadge} />
+          {unreadNotifications > 0 && <View style={styles.notifBadge} />}
         </Pressable>
         <CartButton tone={scrolled ? "dark" : "light"} />
       </View>
@@ -389,10 +417,8 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: radius.xl + 8,
     borderBottomRightRadius: radius.xl + 8,
   },
-  headerOverlay: {
+  headerGradient: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: colors.primary,
-    opacity: 0.55,
   },
   notifButton: {
     width: 36,

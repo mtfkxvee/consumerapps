@@ -1,4 +1,4 @@
-import { Image, ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Screen } from "../components/Screen";
@@ -7,6 +7,9 @@ import { Pressable } from "../components/Pressable";
 import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { formatIDR } from "../lib/format";
 import { useCart } from "../state/CartContext";
+import { useOutlet } from "../state/OutletContext";
+import { RemoteImage } from "../components/RemoteImage";
+import { tapFeedback } from "../lib/haptics";
 import { useTabBarSpace } from "../hooks/useTabBarSpace";
 import { getProductById } from "../lib/api/products";
 
@@ -21,6 +24,8 @@ type Props = {
 export function ProductDetailScreen({ route, navigation }: Props) {
   const { id } = route.params;
   const { add } = useCart();
+  const { selectedOutlet } = useOutlet();
+  const warehouse = selectedOutlet?.warehouse ?? undefined;
   const tabBarSpace = useTabBarSpace();
 
   const {
@@ -29,8 +34,8 @@ export function ProductDetailScreen({ route, navigation }: Props) {
     isError,
     refetch,
   } = useQuery({
-    queryKey: ["product", id],
-    queryFn: () => getProductById(id),
+    queryKey: ["product", id, warehouse ?? null],
+    queryFn: () => getProductById(id, warehouse),
   });
 
   if (isLoading) {
@@ -49,7 +54,12 @@ export function ProductDetailScreen({ route, navigation }: Props) {
   if (isError || !product) {
     return (
       <Screen>
-        <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Pressable
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Kembali"
+        >
           <Ionicons name="chevron-back" size={20} color={colors.onSurface} />
         </Pressable>
         <View style={styles.center}>
@@ -68,20 +78,33 @@ export function ProductDetailScreen({ route, navigation }: Props) {
   return (
     <Screen>
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }}>
-        <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Pressable
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Kembali"
+        >
           <Ionicons name="chevron-back" size={20} color={colors.onSurface} />
         </Pressable>
-        <Image source={{ uri: product.image }} style={styles.image} resizeMode="cover" />
+        <RemoteImage uri={product.image} style={styles.image} label={product.alt || product.name} />
         <View style={styles.content}>
           <Text style={styles.category}>{product.category}</Text>
           <Text style={styles.name}>{product.name}</Text>
           <Text style={styles.price}>{formatIDR(product.price)}</Text>
+          {product.lowStock != null && (
+            <Text style={styles.lowStock}>
+              Stok terbatas — tersisa {product.lowStock} di {selectedOutlet?.name ?? "outlet ini"}
+            </Text>
+          )}
         </View>
       </ScrollView>
       <View style={[styles.footer, { paddingBottom: tabBarSpace }]}>
         <Pressable
           style={styles.addButton}
+          accessibilityRole="button"
+          accessibilityLabel={`Tambah ${product.name} ke keranjang`}
           onPress={() => {
+            tapFeedback();
             add({
               id: product.id,
               name: product.name,
@@ -101,6 +124,7 @@ export function ProductDetailScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
+  lowStock: { color: colors.error, fontSize: 12, fontFamily: fonts.body.semiBold, marginTop: spacing.xs },
   imageSkeleton: { width: "100%", aspectRatio: 1, backgroundColor: colors.surfaceContainer },
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.lg },
   errorBox: { padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.errorContainer },

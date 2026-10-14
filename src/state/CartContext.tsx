@@ -17,6 +17,8 @@ type CartContextValue = {
   items: CartItem[];
   add: (item: AddInput) => void;
   remove: (id: string) => void;
+  // Puts a removed line back (the cart's "Urungkan").
+  restore: (item: CartItem) => void;
   setQty: (id: string, qty: number) => void;
   toggleSelected: (id: string) => void;
   selectAll: (selected: boolean) => void;
@@ -43,6 +45,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const remove = (id: string) => setItems((prev) => prev.filter((i) => i.id !== id));
+
+  const restore = (item: CartItem) =>
+    setItems((prev) => (prev.some((i) => i.id === item.id) ? prev : [...prev, item]));
 
   const setQty = (id: string, qty: number) => {
     if (qty <= 0) return remove(id);
@@ -71,6 +76,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         items,
         add,
         remove,
+        restore,
         setQty,
         toggleSelected,
         selectAll,

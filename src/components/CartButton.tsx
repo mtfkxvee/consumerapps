@@ -20,6 +20,8 @@ export function CartButton({ tone = "dark" }: Props) {
     <Pressable
       style={[styles.button, isLight && styles.buttonLight]}
       onPress={() => navigation.navigate("Cart" as never)}
+      accessibilityRole="button"
+      accessibilityLabel={count > 0 ? `Keranjang, ${count} barang` : "Keranjang"}
     >
       <Ionicons name="cart-outline" size={18} color={isLight ? colors.onPrimary : colors.onSurface} />
       {count > 0 && (

@@ -45,11 +45,13 @@ export async function getProducts(query: ProductQuery): Promise<ProductPage> {
   return { ...result, products: result.products.map(withResolvedImage) };
 }
 
-export async function getProductById(id: string): Promise<Product | null> {
+export async function getProductById(id: string, warehouse?: string): Promise<Product | null> {
   if (!isApiConfigured()) {
     return mockProducts.find((p) => p.id === id) ?? null;
   }
-  const product = await apiRequest<Product | null>(`/api/mobile/products/${encodeURIComponent(id)}`);
+  const product = await apiRequest<Product | null>(`/api/mobile/products/${encodeURIComponent(id)}`, {
+    params: { warehouse },
+  });
   return product ? withResolvedImage(product) : null;
 }
 

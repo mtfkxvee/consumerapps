@@ -19,6 +19,7 @@ const PERSISTED_KEYS = new Set([
   "outlets",
   "item-groups",
   "products",
+  "products-infinite",
   "product",
   "promo-products",
   "promo-banners",

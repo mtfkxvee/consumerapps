@@ -10,6 +10,7 @@ import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
 import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { getMyPesanan } from "../lib/api/orders";
+import { addKeys, DISMISSED_KEY, loadKeys, notificationKey, SEEN_KEY } from "../lib/notificationState";
 import { DELIVERY_STATUS_LABELS } from "../lib/orderStage";
 import type { OrderStage, Pesanan } from "../lib/types";
 
@@ -39,7 +40,7 @@ const STAGE_ICON: Record<OrderStage, keyof typeof Ionicons.glyphMap> = {
 // has. In-store purchases (Riwayat Transaksi) aren't included since the
 // customer was there in person and already knows.
 function toNotification(p: Pesanan): NotificationItem {
-  const key = `${p.id}|${p.stage}|${p.deliveryStatus ?? ""}`;
+  const key = notificationKey(p);
   // Show the document number "Pesanan Saya" shows for this stage.
   const no = p.displayId;
   if (p.stage === "unpaid") {
@@ -89,7 +90,6 @@ function toNotification(p: Pesanan): NotificationItem {
   };
 }
 
-const DISMISSED_KEY = "xsha_dismissed_notifications";
 // Old entries only matter while their order is still in the (20-row) list.
 const MAX_DISMISSED = 200;
 
@@ -98,11 +98,7 @@ export function NotificationsScreen() {
   const [dismissed, setDismissed] = useState<string[]>([]);
 
   useEffect(() => {
-    AsyncStorage.getItem(DISMISSED_KEY)
-      .then((stored) => {
-        if (stored) setDismissed(JSON.parse(stored) as string[]);
-      })
-      .catch(() => {});
+    loadKeys(DISMISSED_KEY).then(setDismissed);
   }, []);
 
   const dismiss = useCallback((keys: string[]) => {
@@ -132,7 +128,12 @@ export function NotificationsScreen() {
   return (
     <Screen>
       <View style={styles.header}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Kembali"
+        >
           <Ionicons name="chevron-back" size={22} color={colors.onSurface} />
         </Pressable>
         <Text style={styles.headerTitle}>Notifikasi</Text>

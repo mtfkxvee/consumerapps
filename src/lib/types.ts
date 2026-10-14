@@ -10,6 +10,9 @@ export type Product = {
   // strike-through/badge as the Promo tab.
   oldPrice?: number;
   discountPercent?: number;
+  // Present only when the selected outlet has a handful left (the server
+  // decides the threshold) — shown as "Tersisa N".
+  lowStock?: number;
 };
 
 export type PromoProduct = Product & { discountPercent: number; oldPrice: number };

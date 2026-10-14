@@ -10,6 +10,7 @@ import { Pressable } from "../components/Pressable";
 import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { formatIDR } from "../lib/format";
 import { getQuotationDetail, resumePayment, verifyPayment } from "../lib/api/orders";
+import { successFeedback } from "../lib/haptics";
 
 type Phase = "checking" | "paid" | "pending";
 
@@ -49,6 +50,7 @@ export function PaymentResultScreen() {
       if (detail) setTotal(detail.total);
       if (detail?.status === "Ordered") {
         setPhase("paid");
+        successFeedback();
         queryClient.invalidateQueries({ queryKey: ["my-pesanan"] });
         return;
       }

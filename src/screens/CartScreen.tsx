@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ActivityIndicator, Alert, FlatList, Image, StyleSheet, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Alert, FlatList, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -7,6 +7,9 @@ import { Screen } from "../components/Screen";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
 import { OutletPicker } from "../components/OutletPicker";
+import { RemoteImage } from "../components/RemoteImage";
+import { tapFeedback } from "../lib/haptics";
+import type { CartItem } from "../state/CartContext";
 import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { formatIDR } from "../lib/format";
 import { useCart } from "../state/CartContext";
@@ -18,10 +21,35 @@ import type { RootStackParamList } from "../navigation/types";
 type Props = NativeStackScreenProps<RootStackParamList, "Cart">;
 
 export function CartScreen({ navigation }: Props) {
-  const { items, remove, setQty, toggleSelected, selectAll, allSelected, selectedTotal } = useCart();
+  const { items, remove, restore, setQty, toggleSelected, selectAll, allSelected, selectedTotal } = useCart();
   const { selectedOutlet } = useOutlet();
   const insets = useSafeAreaInsets();
   const [checkingStock, setCheckingStock] = useState(false);
+  // The line most recently taken out, kept for a few seconds so a mis-tap
+  // can be undone.
+  const [removed, setRemoved] = useState<CartItem | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (undoTimer.current) clearTimeout(undoTimer.current);
+    },
+    [],
+  );
+
+  const removeWithUndo = (item: CartItem) => {
+    remove(item.id);
+    setRemoved(item);
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoTimer.current = setTimeout(() => setRemoved(null), 5000);
+  };
+
+  const undoRemove = () => {
+    if (!removed) return;
+    restore(removed);
+    setRemoved(null);
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+  };
 
   // Verified against whichever outlet is currently selected, right before
   // handing off to Checkout — an outlet is required for this (there's no
@@ -67,7 +95,12 @@ export function CartScreen({ navigation }: Props) {
     return (
       <Screen>
         <View style={styles.header}>
-          <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
+          <Pressable
+          onPress={() => navigation.goBack()}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Kembali"
+        >
             <Ionicons name="chevron-back" size={22} color={colors.onSurface} />
           </Pressable>
           <Text style={styles.headerTitle}>Keranjang Saya</Text>
@@ -76,6 +109,17 @@ export function CartScreen({ navigation }: Props) {
         <View style={styles.empty}>
           <Ionicons name="cart-outline" size={48} color={colors.onSurfaceVariant} />
           <Text style={styles.emptyText}>Keranjang Anda masih kosong.</Text>
+          <Pressable
+            style={styles.emptyButton}
+            onPress={() =>
+              (navigation.navigate as (name: string, params?: object) => void)("MainTabs", {
+                screen: "CatalogTab",
+              })
+            }
+            accessibilityRole="button"
+          >
+            <Text style={styles.emptyButtonText}>Mulai Belanja</Text>
+          </Pressable>
         </View>
       </Screen>
     );
@@ -84,7 +128,12 @@ export function CartScreen({ navigation }: Props) {
   return (
     <Screen>
       <View style={styles.header}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Kembali"
+        >
           <Ionicons name="chevron-back" size={22} color={colors.onSurface} />
         </Pressable>
         <Text style={styles.headerTitle}>Keranjang Saya</Text>
@@ -105,11 +154,14 @@ export function CartScreen({ navigation }: Props) {
               style={[styles.checkbox, item.selected && styles.checkboxChecked]}
               onPress={() => toggleSelected(item.id)}
               hitSlop={8}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: item.selected }}
+              accessibilityLabel={`Pilih ${item.name}`}
             >
               {item.selected && <Ionicons name="checkmark" size={13} color={colors.onPrimary} />}
             </Pressable>
 
-            <Image source={{ uri: item.image }} style={styles.image} />
+            <RemoteImage uri={item.image} style={styles.image} />
 
             <View style={{ flex: 1 }}>
               <Text style={styles.itemName} numberOfLines={2}>
@@ -124,15 +176,37 @@ export function CartScreen({ navigation }: Props) {
               </View>
 
               <View style={styles.bottomRow}>
-                <Pressable onPress={() => remove(item.id)} hitSlop={8}>
-                  <Ionicons name="heart-outline" size={18} color={colors.onSurfaceVariant} />
+                <Pressable
+                  onPress={() => removeWithUndo(item)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Hapus ${item.name} dari keranjang`}
+                >
+                  <Ionicons name="trash-outline" size={18} color={colors.onSurfaceVariant} />
                 </Pressable>
                 <View style={styles.qtyRow}>
-                  <Pressable style={styles.qtyButton} onPress={() => setQty(item.id, item.qty - 1)}>
+                  <Pressable
+                    style={styles.qtyButton}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Kurangi jumlah ${item.name}`}
+                    onPress={() => {
+                      tapFeedback();
+                      if (item.qty <= 1) removeWithUndo(item);
+                      else setQty(item.id, item.qty - 1);
+                    }}
+                  >
                     <Ionicons name="remove" size={14} color={colors.primary} />
                   </Pressable>
                   <Text style={styles.qtyText}>{item.qty}</Text>
-                  <Pressable style={styles.qtyButton} onPress={() => setQty(item.id, item.qty + 1)}>
+                  <Pressable
+                    style={styles.qtyButton}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Tambah jumlah ${item.name}`}
+                    onPress={() => {
+                      tapFeedback();
+                      setQty(item.id, item.qty + 1);
+                    }}
+                  >
                     <Ionicons name="add" size={14} color={colors.primary} />
                   </Pressable>
                 </View>
@@ -141,6 +215,17 @@ export function CartScreen({ navigation }: Props) {
           </View>
         )}
       />
+
+      {removed && (
+        <View style={styles.undoBar}>
+          <Text style={styles.undoText} numberOfLines={1}>
+            {removed.name} dihapus
+          </Text>
+          <Pressable onPress={undoRemove} hitSlop={8} accessibilityRole="button">
+            <Text style={styles.undoAction}>Urungkan</Text>
+          </Pressable>
+        </View>
+      )}
 
       <View style={styles.footer}>
         <View style={styles.footerTopRow}>
@@ -176,6 +261,28 @@ export function CartScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
+  emptyButton: {
+    marginTop: spacing.md,
+    backgroundColor: colors.secondary,
+    borderRadius: radius.full,
+    paddingVertical: 12,
+    paddingHorizontal: spacing.xl,
+  },
+  emptyButtonText: { color: colors.white, fontFamily: fonts.body.bold, fontSize: 14 },
+  undoBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    borderRadius: radius.md,
+    backgroundColor: colors.onSurface,
+  },
+  undoText: { flex: 1, color: colors.white, fontSize: 13 },
+  undoAction: { color: colors.primaryFixed, fontFamily: fonts.body.bold, fontSize: 13 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",

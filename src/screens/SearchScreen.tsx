@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { FlatList, Modal, RefreshControl, StyleSheet, TextInput, View } from "react-native";
+import { ActivityIndicator, FlatList, Modal, RefreshControl, StyleSheet, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Screen } from "../components/Screen";
 import { ProductCard } from "../components/ProductCard";
@@ -47,7 +47,6 @@ export function SearchScreen({ navigation, route }: Props) {
   const [query, setQuery] = useState(route.params?.q ?? "");
   const [department, setDepartment] = useState("");
   const [sort, setSort] = useState<ProductQuery["sort"]>("relevance");
-  const [page, setPage] = useState(1);
   const [filterOpen, setFilterOpen] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
 
@@ -62,7 +61,6 @@ export function SearchScreen({ navigation, route }: Props) {
   useEffect(() => {
     if (route.params?.q !== undefined) {
       setQuery(route.params.q);
-      setPage(1);
       if (route.params.q.trim()) addSearchTerm(route.params.q.trim()).then(setHistory);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -70,7 +68,6 @@ export function SearchScreen({ navigation, route }: Props) {
 
   const runSearch = (term: string) => {
     setQuery(term);
-    setPage(1);
     const trimmed = term.trim();
     if (trimmed) addSearchTerm(trimmed).then(setHistory);
   };
@@ -87,25 +84,36 @@ export function SearchScreen({ navigation, route }: Props) {
       itemGroup: department || undefined,
       warehouse: selectedOutlet?.warehouse ?? undefined,
       sort,
-      page,
       pageSize: PAGE_SIZE,
     }),
-    [query, department, selectedOutlet, sort, page],
+    [query, department, selectedOutlet, sort],
   );
 
   const {
     data,
     isLoading,
     isFetching,
+    isFetchingNextPage,
     isError,
     refetch,
-  } = useQuery({
-    queryKey: ["products", "search", productQuery],
-    queryFn: () => getProducts(productQuery),
+    fetchNextPage,
+    hasNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["products-infinite", "search", productQuery],
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) => getProducts({ ...productQuery, page: pageParam }),
+    getNextPageParam: (last, pages) =>
+      pages.length * PAGE_SIZE < last.total ? pages.length + 1 : undefined,
     enabled: query.length > 0 || department.length > 0,
   });
 
-  const products = data?.products ?? [];
+  // The same product can land on two pages if stock shifts while scrolling.
+  const products = useMemo(() => {
+    const seen = new Set<string>();
+    return (data?.pages ?? [])
+      .flatMap((p) => p.products)
+      .filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)));
+  }, [data]);
   const isBrowsing = query.length > 0 || department.length > 0;
   const activeFilterCount = (department ? 1 : 0) + (sort !== "relevance" ? 1 : 0);
 
@@ -124,7 +132,6 @@ export function SearchScreen({ navigation, route }: Props) {
               returnKeyType="search"
               onChangeText={(t) => {
                 setQuery(t);
-                setPage(1);
               }}
               onSubmitEditing={() => runSearch(query)}
             />
@@ -162,6 +169,17 @@ export function SearchScreen({ navigation, route }: Props) {
         contentContainerStyle={[styles.list, { paddingBottom: tabBarSpace }]}
         columnWrapperStyle={{ gap: spacing.sm }}
         ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
+        onEndReachedThreshold={0.6}
+        onEndReached={() => {
+          if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+        }}
+        ListFooterComponent={
+          isFetchingNextPage ? (
+            <View style={{ paddingVertical: spacing.md }}>
+              <ActivityIndicator color={colors.primary} />
+            </View>
+          ) : null
+        }
         refreshControl={
           <RefreshControl
             refreshing={isFetching && !isLoading}
@@ -215,7 +233,6 @@ export function SearchScreen({ navigation, route }: Props) {
                       style={styles.categoryChip}
                       onPress={() => {
                         setDepartment(d.name);
-                        setPage(1);
                       }}
                     >
                       <View style={styles.categoryIconWrap}>
@@ -238,7 +255,6 @@ export function SearchScreen({ navigation, route }: Props) {
                     setQuery("");
                     setDepartment("");
                     setSort("relevance");
-                    setPage(1);
                   }}
                 >
                   <Text style={styles.resetText}>Reset</Text>
@@ -286,7 +302,6 @@ export function SearchScreen({ navigation, route }: Props) {
                     style={[styles.chip, active && styles.chipActive]}
                     onPress={() => {
                       setDepartment(d.name);
-                      setPage(1);
                     }}
                   >
                     <Text style={[styles.chipText, active && styles.chipTextActive]}>{d.label}</Text>
@@ -305,7 +320,6 @@ export function SearchScreen({ navigation, route }: Props) {
                     style={[styles.chip, active && styles.chipActive]}
                     onPress={() => {
                       setSort(s.value);
-                      setPage(1);
                     }}
                   >
                     <Text style={[styles.chipText, active && styles.chipTextActive]}>{s.label}</Text>
@@ -320,7 +334,6 @@ export function SearchScreen({ navigation, route }: Props) {
                 onPress={() => {
                   setDepartment("");
                   setSort("relevance");
-                  setPage(1);
                 }}
               >
                 <Text style={styles.resetButtonText}>Reset Filter</Text>

@@ -271,7 +271,12 @@ export function CheckoutScreen() {
   return (
     <Screen>
       <View style={styles.header}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Kembali"
+        >
           <Ionicons name="chevron-back" size={22} color={colors.onSurface} />
         </Pressable>
         <Text style={styles.headerTitle}>Checkout</Text>
@@ -484,7 +489,7 @@ export function CheckoutScreen() {
           {submitting ? (
             <ActivityIndicator color={colors.white} />
           ) : (
-            <Text style={styles.submitButtonText}>Buat Pesanan</Text>
+            <Text style={styles.submitButtonText}>Buat Pesanan · {formatIDR(selectedTotal)}</Text>
           )}
         </Pressable>
       </View>

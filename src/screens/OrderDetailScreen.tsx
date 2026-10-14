@@ -7,7 +7,10 @@ import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
 import { colors, fonts, radius, spacing, typography, TAB_BAR_SPACE } from "../theme/colors";
 import { formatIDR } from "../lib/format";
-import { getOrderDetail, getQuotationDetail } from "../lib/api/orders";
+import { getMyPesanan, getOrderDetail, getQuotationDetail } from "../lib/api/orders";
+import { OrderTimeline } from "../components/OrderTimeline";
+import { DELIVERY_STATUS_LABELS } from "../lib/orderStage";
+import type { OrderStage } from "../lib/types";
 
 export function OrderDetailScreen() {
   const navigation = useNavigation();
@@ -17,6 +20,16 @@ export function OrderDetailScreen() {
     source?: "pesanan" | "invoice";
     label?: string;
   };
+
+  // Where an order is comes from the same "Pesanan Saya" data the list uses
+  // (shared cache, no extra request when it is fresh) — not from the raw
+  // ERPNext status word on the document, which is English and technical.
+  const { data: pesananList } = useQuery({
+    queryKey: ["my-pesanan"],
+    queryFn: () => getMyPesanan(),
+    enabled: source === "pesanan",
+  });
+  const pesanan = pesananList?.find((x) => x.id === id);
 
   const {
     data: order,
@@ -28,10 +41,34 @@ export function OrderDetailScreen() {
     queryFn: () => (source === "pesanan" ? getQuotationDetail(id) : getOrderDetail(id)),
   });
 
+  const STAGE_TEXT: Record<OrderStage, string> = {
+    unpaid: "Menunggu Pembayaran",
+    preparing: "Sedang Disiapkan",
+    shipping: "Dalam Pengiriman",
+    completed: "Diterima",
+  };
+  const stage: OrderStage | null = source === "pesanan" ? (pesanan?.stage ?? null) : null;
+  const courierNote =
+    stage === "shipping" && pesanan?.deliveryStatus
+      ? (DELIVERY_STATUS_LABELS[pesanan.deliveryStatus] ?? pesanan.deliveryStatus)
+      : null;
+  const statusText = stage
+    ? STAGE_TEXT[stage]
+    : source === "invoice"
+      ? "Selesai"
+      : order?.status === "Ordered"
+        ? "Sudah Dibayar"
+        : "Menunggu Pembayaran";
+
   return (
     <Screen>
       <View style={styles.header}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel="Kembali"
+        >
           <Ionicons name="chevron-back" size={24} color={colors.onSurface} />
         </Pressable>
         <Text style={styles.headerTitle}>Detail Pesanan</Text>
@@ -55,6 +92,7 @@ export function OrderDetailScreen() {
           contentContainerStyle={styles.list}
           ListHeaderComponent={
             <View style={styles.summaryCard}>
+              {stage && <OrderTimeline stage={stage} note={courierNote} />}
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>No. Pesanan</Text>
                 <Text style={styles.summaryValue}>{label ?? order.id}</Text>
@@ -65,7 +103,7 @@ export function OrderDetailScreen() {
               </View>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Status</Text>
-                <Text style={[styles.summaryValue, styles.statusValue]}>{order.status}</Text>
+                <Text style={[styles.summaryValue, styles.statusValue]}>{statusText}</Text>
               </View>
               <View style={[styles.summaryRow, { marginTop: spacing.xs }]}>
                 <Text style={styles.totalLabel}>Total</Text>

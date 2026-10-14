@@ -59,7 +59,12 @@ export function PaymentWebViewScreen() {
   return (
     <Screen>
       <View style={styles.header}>
-        <Pressable onPress={confirmClose} hitSlop={8}>
+        <Pressable
+          onPress={confirmClose}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Tutup halaman pembayaran"
+        >
           <Ionicons name="close" size={24} color={colors.onSurface} />
         </Pressable>
         <Text style={styles.headerTitle}>Pembayaran</Text>

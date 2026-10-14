@@ -1,9 +1,11 @@
-import { Image, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "./Text";
 import { Pressable } from "./Pressable";
 import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { formatIDR } from "../lib/format";
+import { RemoteImage } from "./RemoteImage";
+import { tapFeedback } from "../lib/haptics";
 import type { Product, PromoProduct } from "../lib/types";
 
 type Props = {
@@ -20,9 +22,14 @@ export function ProductCard({ product, onPress, onAdd }: Props) {
   const promo = isPromo(product) ? product : null;
 
   return (
-    <Pressable style={styles.card} onPress={onPress}>
+    <Pressable
+      style={styles.card}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${product.name}, ${formatIDR(product.price)}`}
+    >
       <View style={styles.imageWrap}>
-        <Image source={{ uri: product.image }} style={styles.image} resizeMode="cover" />
+        <RemoteImage uri={product.image} style={styles.image} />
         {promo && (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>-{promo.discountPercent}%</Text>
@@ -49,8 +56,11 @@ export function ProductCard({ product, onPress, onAdd }: Props) {
         <Pressable
           style={styles.addButton}
           hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={`Tambah ${product.name} ke keranjang`}
           onPress={(e) => {
             e.stopPropagation();
+            tapFeedback();
             onAdd();
           }}
         >

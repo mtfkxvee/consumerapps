@@ -179,7 +179,12 @@ export function OrdersScreen() {
   return (
     <Screen>
       <View style={styles.header}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Kembali"
+        >
           <Ionicons name="chevron-back" size={22} color={colors.onSurface} />
         </Pressable>
         <Text style={styles.headerTitle}>Pesanan Saya</Text>
@@ -241,7 +246,23 @@ export function OrdersScreen() {
                         progressBackgroundColor={colors.surface}
                       />
                     }
-                    ListEmptyComponent={<Text style={styles.empty}>Tidak ada pesanan di tahap ini.</Text>}
+                    ListEmptyComponent={
+                      <View style={styles.emptyWrap}>
+                        <Ionicons name="receipt-outline" size={40} color={colors.onSurfaceVariant} />
+                        <Text style={styles.empty}>Tidak ada pesanan di tahap ini.</Text>
+                        <Pressable
+                          style={styles.emptyButton}
+                          accessibilityRole="button"
+                          onPress={() =>
+                            (navigation.navigate as (name: string, params?: object) => void)("MainTabs", {
+                              screen: "CatalogTab",
+                            })
+                          }
+                        >
+                          <Text style={styles.emptyButtonText}>Mulai Belanja</Text>
+                        </Pressable>
+                      </View>
+                    }
                     renderItem={({ item: row }) => (
                       <Pressable
                         style={styles.card}
@@ -303,6 +324,15 @@ export function OrdersScreen() {
 }
 
 const styles = StyleSheet.create({
+  emptyWrap: { alignItems: "center", gap: spacing.sm, paddingVertical: spacing.xl },
+  emptyButton: {
+    marginTop: spacing.xs,
+    backgroundColor: colors.secondary,
+    borderRadius: radius.full,
+    paddingVertical: 10,
+    paddingHorizontal: spacing.xl,
+  },
+  emptyButtonText: { color: colors.white, fontFamily: fonts.body.bold, fontSize: 13 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
