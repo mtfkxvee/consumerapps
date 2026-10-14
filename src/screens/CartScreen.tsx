@@ -12,6 +12,7 @@ import { formatIDR } from "../lib/format";
 import { useCart } from "../state/CartContext";
 import { useOutlet } from "../state/OutletContext";
 import { checkStock } from "../lib/api/products";
+import { isNetworkError } from "../lib/api/client";
 import type { RootStackParamList } from "../navigation/types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Cart">;
@@ -35,9 +36,19 @@ export function CartScreen({ navigation }: Props) {
     if (selectedItems.length === 0) return;
 
     setCheckingStock(true);
-    const outOfStock = selectedOutlet.warehouse
-      ? await checkStock(selectedItems.map((i) => i.id), selectedOutlet.warehouse)
-      : [];
+    let outOfStock: string[] = [];
+    try {
+      outOfStock = selectedOutlet.warehouse
+        ? await checkStock(selectedItems.map((i) => i.id), selectedOutlet.warehouse)
+        : [];
+    } catch (error) {
+      setCheckingStock(false);
+      Alert.alert(
+        isNetworkError(error) && error.timedOut ? "Koneksi Terlalu Lambat" : "Tidak Ada Koneksi Internet",
+        "Ketersediaan barang belum bisa diperiksa. Keranjang Anda aman — periksa sinyal atau Wi-Fi, lalu coba lagi.",
+      );
+      return;
+    }
     setCheckingStock(false);
 
     if (outOfStock.length > 0) {

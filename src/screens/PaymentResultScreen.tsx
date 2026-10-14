@@ -9,7 +9,7 @@ import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
 import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { formatIDR } from "../lib/format";
-import { getQuotationDetail, resumePayment } from "../lib/api/orders";
+import { getQuotationDetail, resumePayment, verifyPayment } from "../lib/api/orders";
 
 type Phase = "checking" | "paid" | "pending";
 
@@ -40,6 +40,10 @@ export function PaymentResultScreen() {
     const id = ++runId.current;
     setPhase("checking");
     for (let i = 0; i < POLL_ATTEMPTS; i++) {
+      // The webhook from DOKU normally books the payment within seconds. If
+      // it hasn't by the second look, ask the server to check with DOKU
+      // itself so a lost or late webhook doesn't leave a paid order unpaid.
+      if (i === 1) await verifyPayment(orderId);
       const detail = await getQuotationDetail(orderId);
       if (id !== runId.current) return;
       if (detail) setTotal(detail.total);

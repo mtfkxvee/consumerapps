@@ -45,11 +45,53 @@ export async function clearToken(): Promise<void> {
 
 export class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  // The `message` the server put in its JSON answer, when it sent one — an
+  // already customer-facing sentence ("Pesanan ini sudah dibayar.") as
+  // opposed to `message`, which is a debugging string with the request path.
+  serverMessage?: string;
+  constructor(message: string, status: number, serverMessage?: string) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.serverMessage = serverMessage;
   }
+}
+
+// The request never got an answer — no internet, a dead connection, or one
+// so slow it was given up on. Kept separate from ApiError(status >= 400)
+// because the right response differs: the customer can't fix a server
+// error, but can usually fix this one (and nothing was received, so it is
+// safe to simply try again).
+export class NetworkError extends ApiError {
+  timedOut: boolean;
+  constructor(timedOut: boolean) {
+    super(
+      timedOut
+        ? "Koneksi terlalu lambat sehingga permintaan dihentikan. Periksa sinyal Anda, lalu coba lagi."
+        : "Tidak ada koneksi internet. Periksa sinyal atau Wi-Fi Anda, lalu coba lagi.",
+      0,
+    );
+    this.name = "NetworkError";
+    this.timedOut = timedOut;
+  }
+}
+
+export function isNetworkError(error: unknown): error is NetworkError {
+  return error instanceof NetworkError;
+}
+
+// A customer-facing Indonesian message for any thrown error. ApiError's own
+// `message` carries the request path and a response excerpt for debugging,
+// which must never be shown to a shopper.
+export function describeError(error: unknown, fallback = "Terjadi kesalahan. Silakan coba lagi."): string {
+  if (error instanceof NetworkError) return error.message;
+  if (error instanceof ApiError && error.status >= 400 && error.status < 500 && error.serverMessage) {
+    return error.serverMessage;
+  }
+  if (error instanceof ApiError && error.status >= 500) {
+    return "Server sedang bermasalah. Silakan coba lagi beberapa saat lagi.";
+  }
+  return fallback;
 }
 
 type RequestOptions = {
@@ -57,7 +99,12 @@ type RequestOptions = {
   params?: Record<string, string | undefined>;
   body?: unknown;
   auth?: boolean;
+  // Give up (as a NetworkError) if no answer arrives in this long. Without
+  // it a bad connection leaves the screen spinning indefinitely.
+  timeoutMs?: number;
 };
+
+const DEFAULT_TIMEOUT_MS = 25_000;
 
 function buildUrl(path: string, params?: RequestOptions["params"]) {
   const url = new URL(API_URL + path);
@@ -79,15 +126,33 @@ export async function apiRequest<T>(path: string, opts: RequestOptions = {}): Pr
   }
   if (opts.body !== undefined) headers["Content-Type"] = "application/json";
 
-  const res = await fetch(buildUrl(path, opts.params), {
-    method: opts.method ?? "GET",
-    headers,
-    body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(buildUrl(path, opts.params), {
+      method: opts.method ?? "GET",
+      headers,
+      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+      signal: controller.signal,
+    });
+  } catch {
+    // fetch only rejects when no HTTP answer arrived at all.
+    throw new NetworkError(controller.signal.aborted);
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new ApiError(`${path} gagal (${res.status}): ${text.slice(0, 300)}`, res.status);
+    let serverMessage: string | undefined;
+    try {
+      const parsed = JSON.parse(text) as { message?: unknown };
+      if (typeof parsed.message === "string") serverMessage = parsed.message;
+    } catch {
+      // Not JSON (e.g. an HTML error page) — no customer-facing message.
+    }
+    throw new ApiError(`${path} gagal (${res.status}): ${text.slice(0, 300)}`, res.status, serverMessage);
   }
 
   return (await res.json()) as T;

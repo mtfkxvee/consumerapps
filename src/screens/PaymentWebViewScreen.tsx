@@ -5,6 +5,7 @@ import { StackActions, useNavigation, useRoute } from "@react-navigation/native"
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Screen } from "../components/Screen";
+import { ErrorState } from "../components/ErrorState";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
 import { colors, radius, spacing, typography } from "../theme/colors";
@@ -21,6 +22,9 @@ export function PaymentWebViewScreen() {
   const insets = useSafeAreaInsets();
   const { orderId, paymentUrl } = useRoute().params as { orderId: string; paymentUrl: string };
   const [loading, setLoading] = useState(true);
+  // Bumped to force the WebView to reload after a failed attempt.
+  const [reloadKey, setReloadKey] = useState(0);
+  const [loadError, setLoadError] = useState(false);
   const finished = useRef(false);
 
   const finish = () => {
@@ -63,14 +67,32 @@ export function PaymentWebViewScreen() {
       </View>
 
       <View style={{ flex: 1 }}>
-        <WebView
-          source={{ uri: paymentUrl }}
-          onShouldStartLoadWithRequest={onShouldStart}
-          onLoadEnd={() => setLoading(false)}
-          setSupportMultipleWindows={false}
-          style={{ flex: 1 }}
-        />
-        {loading && (
+        {loadError ? (
+          <ErrorState
+            variant="offline"
+            title="Halaman Pembayaran Tidak Bisa Dibuka"
+            message="Periksa koneksi internet Anda lalu coba lagi. Pesanan Anda sudah tersimpan dan belum ada pembayaran yang diproses."
+            primaryLabel="Coba Lagi"
+            onPrimary={() => {
+              setLoadError(false);
+              setLoading(true);
+              setReloadKey((k) => k + 1);
+            }}
+            secondaryLabel="Bayar Nanti dari Pesanan Saya"
+            onSecondary={finish}
+          />
+        ) : (
+          <WebView
+            key={reloadKey}
+            source={{ uri: paymentUrl }}
+            onShouldStartLoadWithRequest={onShouldStart}
+            onLoadEnd={() => setLoading(false)}
+            onError={() => setLoadError(true)}
+            setSupportMultipleWindows={false}
+            style={{ flex: 1 }}
+          />
+        )}
+        {loading && !loadError && (
           <View style={styles.loading} pointerEvents="none">
             <ActivityIndicator size="large" color={colors.primary} />
           </View>

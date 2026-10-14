@@ -9,7 +9,8 @@ import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
 import { colors, fonts, radius, spacing, typography } from "../theme/colors";
 import { formatIDR } from "../lib/format";
-import { getMyOrders, getMyPesanan, resumePayment } from "../lib/api/orders";
+import { cancelPesanan, getMyOrders, getMyPesanan, resumePayment } from "../lib/api/orders";
+import { describeError } from "../lib/api/client";
 import { DELIVERY_STATUS_LABELS } from "../lib/orderStage";
 import type { OrderStage } from "../lib/types";
 
@@ -45,6 +46,7 @@ export function OrdersScreen() {
   const pagerRef = useRef<PagerView>(null);
   const [tab, setTab] = useState<Tab>("unpaid");
   const [resumingId, setResumingId] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   const {
     data: pesanan,
@@ -52,7 +54,14 @@ export function OrdersScreen() {
     isError: pesananError,
     isFetching: pesananFetching,
     refetch: refetchPesanan,
-  } = useQuery({ queryKey: ["my-pesanan"], queryFn: () => getMyPesanan() });
+    // Status moves on the server without any action here (payment lands,
+    // staff prepare/ship). Refreshing while this screen is open means the
+    // customer sees it happen without having to pull down.
+  } = useQuery({
+    queryKey: ["my-pesanan"],
+    queryFn: () => getMyPesanan(),
+    refetchInterval: 30_000,
+  });
 
   const {
     data: invoices,
@@ -66,6 +75,30 @@ export function OrdersScreen() {
   const refetch = () => {
     refetchPesanan();
     refetchInvoices();
+  };
+
+  const handleCancel = (id: string, label: string) => {
+    Alert.alert(
+      "Batalkan pesanan?",
+      `Pesanan ${label} belum dibayar dan akan dibatalkan. Jika Anda sudah membayar, jangan batalkan — tunggu beberapa saat sampai statusnya diperbarui.`,
+      [
+        { text: "Tidak", style: "cancel" },
+        {
+          text: "Ya, Batalkan",
+          style: "destructive",
+          onPress: async () => {
+            setCancellingId(id);
+            const result = await cancelPesanan(id);
+            setCancellingId(null);
+            if (!result.ok) {
+              Alert.alert("Pesanan belum bisa dibatalkan", result.message);
+              return;
+            }
+            refetchPesanan();
+          },
+        },
+      ],
+    );
   };
 
   const rowsForTab = (tabKey: Tab): Row[] => {
@@ -127,9 +160,9 @@ export function OrdersScreen() {
   const handleResume = async (id: string) => {
     setResumingId(id);
     const result = await resumePayment(id).catch(
-      (): { ok: false; message: string } => ({
+      (error: unknown): { ok: false; message: string } => ({
         ok: false,
-        message: "Tidak bisa terhubung ke server. Periksa koneksi lalu coba lagi.",
+        message: describeError(error, "Pembayaran belum bisa dilanjutkan. Coba lagi."),
       }),
     );
     setResumingId(null);
@@ -232,7 +265,7 @@ export function OrdersScreen() {
                             <Pressable
                               style={styles.resumeButton}
                               onPress={() => handleResume(row.id)}
-                              disabled={resumingId === row.id}
+                              disabled={resumingId === row.id || cancellingId === row.id}
                             >
                               {resumingId === row.id ? (
                                 <ActivityIndicator size="small" color={colors.onPrimary} />
@@ -242,6 +275,20 @@ export function OrdersScreen() {
                             </Pressable>
                           )}
                         </View>
+                        {row.resumable && (
+                          <Pressable
+                            style={styles.cancelLink}
+                            onPress={() => handleCancel(row.id, row.label)}
+                            disabled={cancellingId === row.id || resumingId === row.id}
+                            hitSlop={8}
+                          >
+                            {cancellingId === row.id ? (
+                              <ActivityIndicator size="small" color={colors.onSurfaceVariant} />
+                            ) : (
+                              <Text style={styles.cancelLinkText}>Batalkan Pesanan</Text>
+                            )}
+                          </Pressable>
+                        )}
                       </Pressable>
                     )}
                   />
@@ -326,4 +373,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   resumeButtonText: { color: colors.onPrimary, fontFamily: fonts.body.bold, fontSize: 12 },
+  cancelLink: { alignSelf: "flex-end", marginTop: spacing.sm, paddingVertical: 2 },
+  cancelLinkText: { color: colors.onSurfaceVariant, fontFamily: fonts.body.semiBold, fontSize: 12 },
 });

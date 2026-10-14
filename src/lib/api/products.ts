@@ -1,4 +1,4 @@
-import { apiRequest, isApiConfigured, resolveImageUrl } from "./client";
+import { apiRequest, isApiConfigured, isNetworkError, resolveImageUrl } from "./client";
 import { mockItemGroups, mockPromoBanners, mockPromoProducts, mockProducts } from "../mock-data";
 import type {
   ItemGroup,
@@ -80,8 +80,12 @@ export async function checkStock(itemCodes: string[], warehouse: string): Promis
       body: { itemCodes, warehouse },
     });
     return res.outOfStock;
-  } catch {
-    // Best-effort: if the check itself fails, don't block checkout over it.
+  } catch (error) {
+    // No connection is the one failure worth stopping on: checkout needs
+    // the network anyway, so let the caller tell the customer now rather
+    // than send them to a form that cannot be submitted.
+    if (isNetworkError(error)) throw error;
+    // Anything else is best-effort: don't block checkout over the check.
     return [];
   }
 }

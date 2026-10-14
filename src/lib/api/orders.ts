@@ -1,12 +1,16 @@
 import * as Linking from "expo-linking";
-import { apiRequest, isApiConfigured } from "./client";
+import { apiRequest, describeError, isApiConfigured } from "./client";
 import { mockOrders } from "../mock-data";
 import { getCurrentCustomer } from "./auth";
 import type { Order, OrderDetail, OrderLine, Pesanan } from "../types";
 
 export type CreateOrderResult =
   | { ok: true; orderId: string; paymentUrl?: string; paymentError?: string }
-  | { ok: false; reason: "not_configured" | "not_authenticated" | "erpnext_error"; message?: string };
+  | {
+      ok: false;
+      reason: "not_configured" | "not_authenticated" | "erpnext_error" | "out_of_stock";
+      message?: string;
+    };
 
 // Lets a real fetch failure surface as useQuery's isError instead of
 // silently looking identical to "no orders yet" — AccountScreen shows a
@@ -89,4 +93,33 @@ export async function createOrder(
       longitude: coords?.longitude,
     },
   });
+}
+
+// "Batalkan Pesanan" — only an order that hasn't been paid for.
+export async function cancelPesanan(id: string): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (!isApiConfigured()) return { ok: false, message: "API belum dikonfigurasi." };
+  try {
+    return await apiRequest<{ ok: true } | { ok: false; message: string }>(
+      `/api/mobile/quotations/${encodeURIComponent(id)}/cancel`,
+      { method: "POST", auth: true },
+    );
+  } catch (error) {
+    return { ok: false, message: describeError(error, "Pesanan belum bisa dibatalkan. Coba lagi.") };
+  }
+}
+
+// Asks the server to check the payment with DOKU directly, for when the
+// customer is back from the payment page but the order still looks unpaid
+// (the server's webhook from DOKU is the main path; this is the backstop).
+export async function verifyPayment(id: string): Promise<boolean> {
+  if (!isApiConfigured()) return false;
+  try {
+    const res = await apiRequest<{ ok: true; paid: boolean } | { ok: false }>(
+      `/api/mobile/quotations/${encodeURIComponent(id)}/verify-payment`,
+      { method: "POST", auth: true },
+    );
+    return res.ok && res.paid;
+  } catch {
+    return false;
+  }
 }

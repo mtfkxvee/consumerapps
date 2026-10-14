@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { Platform } from "react-native";
+import { Linking, Platform } from "react-native";
+import { useQuery } from "@tanstack/react-query";
+import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
 import { NavigationContainer, useNavigation } from "@react-navigation/native";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
@@ -25,6 +27,10 @@ import { NotificationsScreen } from "../screens/NotificationsScreen";
 import { PaymentResultScreen } from "../screens/PaymentResultScreen";
 import { PaymentWebViewScreen } from "../screens/PaymentWebViewScreen";
 import { FloatingTabBar } from "./FloatingTabBar";
+import { Screen } from "../components/Screen";
+import { ErrorState } from "../components/ErrorState";
+import { getMinimumVersion, isVersionBelow } from "../lib/api/appConfig";
+import { WHATSAPP_NUMBER } from "../lib/mock-data";
 import { useAuth } from "../state/AuthContext";
 import type {
   RootTabParamList,
@@ -54,7 +60,7 @@ function PushNavigationHandler() {
     const open = (response: Notifications.NotificationResponse | null) => {
       if (!response || response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
       const data = response.notification.request.content.data;
-      if (data?.type === "delivery" && typeof data.orderId === "string") {
+      if ((data?.type === "delivery" || data?.type === "payment") && typeof data.orderId === "string") {
         (navigation.navigate as (name: string, params?: object) => void)("OrderDetail", {
           id: data.orderId,
           source: "pesanan",
@@ -134,8 +140,17 @@ function MainTabs() {
 // Exported so the dev-only "Reset Onboarding" row in Pengaturan can clear it.
 export const ONBOARDING_KEY = "xsha_onboarding_seen";
 
+const APP_VERSION = Constants.expoConfig?.version ?? "0.0.0";
+
 export function RootNavigator() {
   const { needsProfileCompletion } = useAuth();
+  // Lets the server retire a build that can no longer work. Failure to
+  // reach it never blocks the app (see getMinimumVersion).
+  const { data: minimumVersion } = useQuery({
+    queryKey: ["app-config"],
+    queryFn: getMinimumVersion,
+    staleTime: 5 * 60_000,
+  });
   const [checkedOnboarding, setCheckedOnboarding] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
@@ -150,6 +165,23 @@ export function RootNavigator() {
   // install's very first screen. Persisted so it never reappears once
   // dismissed, on this device, regardless of login state.
   if (!checkedOnboarding) return null;
+
+  if (minimumVersion && isVersionBelow(APP_VERSION, minimumVersion)) {
+    return (
+      <Screen>
+        <ErrorState
+          title="Perbarui Aplikasi"
+          message={`Versi aplikasi ini (${APP_VERSION}) sudah tidak didukung. Silakan pasang versi terbaru X-SHA untuk melanjutkan.`}
+          primaryLabel="Hubungi Kami"
+          onPrimary={() =>
+            Linking.openURL(
+              `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo X-SHA, saya butuh versi terbaru aplikasi.")}`,
+            )
+          }
+        />
+      </Screen>
+    );
+  }
   if (showOnboarding) {
     return (
       <OnboardingScreen

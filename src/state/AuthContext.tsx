@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   completeProfile as completeProfileApi,
   getCurrentCustomer,
@@ -9,6 +10,8 @@ import {
 import type { CurrentUser } from "../lib/types";
 import { setCrashUser } from "../lib/crashlytics";
 import { registerForPushNotifications, unregisterPushNotifications } from "../lib/pushNotifications";
+import { PERSONAL_QUERY_KEYS } from "../lib/queryPersist";
+import { describeError } from "../lib/api/client";
 
 type AuthContextValue = {
   user: CurrentUser | null;
@@ -36,6 +39,7 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
@@ -61,20 +65,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (usr: string, pwd: string) => {
-      const res = await loginCustomer(usr, pwd);
-      if (res.ok) await refresh();
-      return res;
+      // A thrown error (no internet, too many attempts, server down) must
+      // come back as a normal failure so the form can show it — otherwise
+      // the sign-in button would spin forever.
+      try {
+        const res = await loginCustomer(usr, pwd);
+        if (res.ok) await refresh();
+        return res;
+      } catch (error) {
+        return {
+          ok: false as const,
+          message: describeError(error, "Belum bisa masuk saat ini. Silakan coba lagi."),
+        };
+      }
     },
     [refresh],
   );
 
   const loginGoogle = useCallback(async () => {
-    const res = await loginWithGoogle();
-    if (res.ok) {
-      setNeedsProfileCompletion(res.isNewSignup);
-      await refresh();
+    try {
+      const res = await loginWithGoogle();
+      if (res.ok) {
+        setNeedsProfileCompletion(res.isNewSignup);
+        await refresh();
+      }
+      return res;
+    } catch (error) {
+      return {
+        ok: false as const,
+        message: describeError(error, "Belum bisa masuk dengan Google saat ini. Silakan coba lagi."),
+      };
     }
-    return res;
   }, [refresh]);
 
   const completeProfile = useCallback(
@@ -86,12 +107,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       latitude?: number | null;
       longitude?: number | null;
     }) => {
-      const res = await completeProfileApi(data);
-      if (res.ok) {
-        setNeedsProfileCompletion(false);
-        await refresh();
+      try {
+        const res = await completeProfileApi(data);
+        if (res.ok) {
+          setNeedsProfileCompletion(false);
+          await refresh();
+        }
+        return res;
+      } catch (error) {
+        return {
+          ok: false as const,
+          message: describeError(error, "Profil belum bisa disimpan saat ini. Silakan coba lagi."),
+        };
       }
-      return res;
     },
     [refresh],
   );
@@ -99,10 +127,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     await unregisterPushNotifications();
     await logoutCustomer();
+    // Customer data stays in memory for hours (long gcTime) — drop it so the
+    // next person to sign in on this phone never sees the previous one's.
+    for (const key of PERSONAL_QUERY_KEYS) queryClient.removeQueries({ queryKey: [key] });
     setUser(null);
     setCrashUser(null);
     setNeedsProfileCompletion(false);
-  }, []);
+  }, [queryClient]);
 
   return (
     <AuthContext.Provider

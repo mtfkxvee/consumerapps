@@ -2,7 +2,9 @@ import { useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import Constants from "expo-constants";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { AppSplash } from "./src/components/AppSplash";
@@ -11,13 +13,20 @@ import { AuthProvider } from "./src/state/AuthContext";
 import { OutletProvider } from "./src/state/OutletContext";
 import { fonts } from "./src/theme/colors";
 import { installGlobalErrorHandlers } from "./src/lib/crashlytics";
+import { CACHE_MAX_AGE_MS, queryPersister, shouldPersistQuery } from "./src/lib/queryPersist";
 
 SplashScreen.preventAutoHideAsync();
 installGlobalErrorHandlers();
 
+// gcTime must be >= the persister's maxAge, or restored entries are
+// garbage-collected the moment they're loaded back from disk.
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
+  defaultOptions: { queries: { retry: 1, staleTime: 30_000, gcTime: CACHE_MAX_AGE_MS } },
 });
+
+// A new app version drops the saved cache, so a changed data shape can never
+// be read back by code that expects the old one.
+const CACHE_BUSTER = Constants.expoConfig?.version ?? "0";
 
 export default function App() {
   // Importing single weight files directly (instead of destructuring from
@@ -56,7 +65,15 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{
+          persister: queryPersister,
+          maxAge: CACHE_MAX_AGE_MS,
+          buster: CACHE_BUSTER,
+          dehydrateOptions: { shouldDehydrateQuery: shouldPersistQuery },
+        }}
+      >
         <AuthProvider>
           <OutletProvider>
             <CartProvider>
@@ -65,7 +82,7 @@ export default function App() {
             </CartProvider>
           </OutletProvider>
         </AuthProvider>
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </SafeAreaProvider>
   );
 }

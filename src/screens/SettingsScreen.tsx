@@ -30,11 +30,6 @@ export function SettingsScreen() {
       onPress: () => (navigation.navigate as (name: string) => void)("EditProfile"),
     },
     {
-      icon: "lock-closed-outline",
-      label: "Ganti Kata Sandi",
-      onPress: () => Alert.alert("Segera Hadir", "Fitur ganti kata sandi akan segera tersedia di X-SHA."),
-    },
-    {
       icon: "help-circle-outline",
       label: "Bantuan",
       onPress: () =>

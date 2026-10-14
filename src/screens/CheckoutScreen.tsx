@@ -4,6 +4,7 @@ import { StackActions, useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Screen } from "../components/Screen";
+import { ErrorState } from "../components/ErrorState";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
 import { MapPreview } from "../components/MapPreview";
@@ -14,6 +15,7 @@ import { useAuth } from "../state/AuthContext";
 import { useOutlet } from "../state/OutletContext";
 import { getRoadDistancesKm } from "../lib/api/routing";
 import { createOrder } from "../lib/api/orders";
+import { describeError, isNetworkError } from "../lib/api/client";
 import { getMyAddress } from "../lib/api/profile";
 import { WHATSAPP_NUMBER } from "../lib/mock-data";
 
@@ -64,9 +66,16 @@ export function CheckoutScreen() {
   } | null>(null);
   const [loadingAddress, setLoadingAddress] = useState(false);
   const [contactNumber, setContactNumber] = useState(user?.customer?.mobile ?? "");
-  const [promoCode, setPromoCode] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("automatic");
   const [submitting, setSubmitting] = useState(false);
+  // Set when placing the order failed before the server answered (or with a
+  // server error) — shown as a full-screen state with a retry, instead of
+  // leaving the button spinning for good.
+  const [submitError, setSubmitError] = useState<{
+    offline: boolean;
+    timedOut: boolean;
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     if (fulfillment !== "delivery" || !isLoggedIn || registeredAddress) return;
@@ -164,12 +173,23 @@ export function CheckoutScreen() {
     setSubmitting(true);
 
     if (isLoggedIn) {
-      const result = await createOrder(
-        selectedItems.map((i) => ({ itemCode: i.id, itemName: i.name, qty: i.qty, rate: i.price })),
-        note,
-        selectedOutlet?.code,
-        fulfillment === "delivery" && coords ? { latitude: coords.lat, longitude: coords.lng } : undefined,
-      );
+      let result: Awaited<ReturnType<typeof createOrder>>;
+      try {
+        result = await createOrder(
+          selectedItems.map((i) => ({ itemCode: i.id, itemName: i.name, qty: i.qty, rate: i.price })),
+          note,
+          selectedOutlet?.code,
+          fulfillment === "delivery" && coords ? { latitude: coords.lat, longitude: coords.lng } : undefined,
+        );
+      } catch (error) {
+        setSubmitting(false);
+        setSubmitError({
+          offline: isNetworkError(error),
+          timedOut: isNetworkError(error) && error.timedOut,
+          message: describeError(error, "Pesanan belum bisa dibuat saat ini."),
+        });
+        return;
+      }
       setSubmitting(false);
 
       if (paymentMethod === "automatic") {
@@ -189,6 +209,11 @@ export function CheckoutScreen() {
           Alert.alert(
             "Sesi berakhir",
             "Sesi login Anda tidak lagi valid. Keluar lalu masuk kembali dari tab Akun, kemudian coba lagi.",
+          );
+        } else if (result.reason === "out_of_stock") {
+          Alert.alert(
+            "Stok Tidak Mencukupi",
+            `${result.message ?? "Sebagian barang tidak tersedia."}\n\nKurangi jumlahnya atau hapus barang tersebut dari keranjang, lalu coba lagi.`,
           );
         } else {
           Alert.alert(
@@ -215,6 +240,33 @@ export function CheckoutScreen() {
     sendToWhatsapp(note);
     if (isLoggedIn) navigation.goBack();
   };
+
+  if (submitError) {
+    const { offline, timedOut, message } = submitError;
+    return (
+      <Screen>
+        <ErrorState
+          variant={offline ? "offline" : "error"}
+          title={
+            offline
+              ? timedOut
+                ? "Koneksi Terlalu Lambat"
+                : "Tidak Ada Koneksi Internet"
+              : "Pesanan Belum Bisa Dibuat"
+          }
+          message={`${message}\n\nPesanan belum dibuat dan belum ada pembayaran yang diproses. Keranjang dan data checkout Anda masih tersimpan.`}
+          primaryLabel="Coba Lagi"
+          primaryLoading={submitting}
+          onPrimary={() => {
+            setSubmitError(null);
+            handleSubmit();
+          }}
+          secondaryLabel="Kembali ke Checkout"
+          onSecondary={() => setSubmitError(null)}
+        />
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
@@ -391,29 +443,6 @@ export function CheckoutScreen() {
         <Text style={styles.contactHint}>
           Nomor ini yang akan dihubungi tim kami saat mengantarkan/menyiapkan pesanan Anda.
         </Text>
-
-        <Text style={styles.sectionTitle}>Kode Promo</Text>
-        <View style={styles.promoRow}>
-          <View style={[styles.inputWrap, { flex: 1, marginBottom: 0 }]}>
-            <Ionicons name="pricetag-outline" size={18} color={colors.onSurfaceVariant} />
-            <TextInput
-              style={styles.input}
-              value={promoCode}
-              onChangeText={setPromoCode}
-              placeholder="Masukkan kode promo"
-              placeholderTextColor={colors.onSurfaceVariant}
-              autoCapitalize="characters"
-            />
-          </View>
-          <Pressable
-            style={styles.promoButton}
-            onPress={() =>
-              Alert.alert("Segera Hadir", "Fitur kode promo akan segera tersedia di X-SHA.")
-            }
-          >
-            <Text style={styles.promoButtonText}>Terapkan</Text>
-          </Pressable>
-        </View>
 
         <Text style={styles.sectionTitle}>Metode Pembayaran</Text>
         <Pressable
