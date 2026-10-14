@@ -2,6 +2,7 @@ import { Alert, Linking, StyleSheet, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
+import Constants from "expo-constants";
 import { Screen } from "../components/Screen";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
@@ -15,6 +16,9 @@ type SettingsRow = {
   label: string;
   onPress: () => void;
 };
+
+// The version the build was made with (app.json `version`).
+const APP_VERSION = Constants.expoConfig?.version ?? "-";
 
 export function SettingsScreen() {
   const navigation = useNavigation();
@@ -117,6 +121,8 @@ export function SettingsScreen() {
             </Pressable>
           ))}
         </View>
+
+        <Text style={styles.version}>X-SHA versi {APP_VERSION}</Text>
       </View>
     </Screen>
   );
@@ -151,4 +157,11 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
   rowLabel: { flex: 1, fontSize: 14, fontFamily: fonts.body.semiBold, color: colors.onSurface },
+  version: {
+    marginTop: spacing.lg,
+    textAlign: "center",
+    fontSize: 12,
+    fontFamily: fonts.body.medium,
+    color: colors.onSurfaceVariant,
+  },
 });

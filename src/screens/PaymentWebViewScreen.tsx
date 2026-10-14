@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, Linking, StyleSheet, View } from "react-nativ
 import { WebView, type WebViewNavigation } from "react-native-webview";
 import { StackActions, useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Screen } from "../components/Screen";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
@@ -15,6 +16,9 @@ import { colors, radius, spacing, typography } from "../theme/colors";
 // confirms the payment against the server rather than trusting the redirect.
 export function PaymentWebViewScreen() {
   const navigation = useNavigation();
+  // Screen only pads the top/sides, so the bottom button would sit under
+  // Android's 3-button / gesture navigation bar without this.
+  const insets = useSafeAreaInsets();
   const { orderId, paymentUrl } = useRoute().params as { orderId: string; paymentUrl: string };
   const [loading, setLoading] = useState(true);
   const finished = useRef(false);
@@ -76,6 +80,7 @@ export function PaymentWebViewScreen() {
       <Pressable style={styles.doneBar} onPress={finish}>
         <Text style={styles.doneText}>Saya sudah membayar</Text>
       </Pressable>
+      <View style={{ height: insets.bottom }} />
     </Screen>
   );
 }

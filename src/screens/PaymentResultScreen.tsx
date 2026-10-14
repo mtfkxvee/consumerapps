@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { StackActions, useNavigation, useRoute } from "@react-navigation/native";
 import { useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Screen } from "../components/Screen";
 import { Text } from "../components/Text";
 import { Pressable } from "../components/Pressable";
@@ -24,6 +25,9 @@ const POLL_ATTEMPTS = 5;
 // redirect alone.
 export function PaymentResultScreen() {
   const navigation = useNavigation();
+  // Screen only pads the top/sides, so the footer buttons would sit under
+  // Android's 3-button / gesture navigation bar without this.
+  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const { orderId } = useRoute().params as { orderId: string };
 
@@ -136,6 +140,7 @@ export function PaymentResultScreen() {
           </Pressable>
         </View>
       )}
+      <View style={{ height: insets.bottom }} />
     </Screen>
   );
 }
